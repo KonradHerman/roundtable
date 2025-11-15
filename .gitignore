@@ -1,5 +1,6 @@
 # Backend
 backend/server
+backend/package-lock.json
 *.exe
 *.dll
 *.so
