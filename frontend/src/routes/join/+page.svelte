@@ -4,6 +4,8 @@
 	import { page } from '$app/stores';
 	import { api, type JoinRoomRequest } from '$lib/api/client';
 	import { session } from '$lib/stores/session';
+	import { Card, Button } from '$lib/components/ui';
+	import { ArrowLeft } from 'lucide-svelte';
 
 	let roomCode = '';
 	let displayName = '';
@@ -64,25 +66,28 @@
 	<title>Join Room - Roundtable</title>
 </svelte:head>
 
-<div class="min-h-screen p-6 bg-gradient-to-br from-primary-500 to-primary-700">
+<div class="min-h-screen p-6 bg-gradient-to-br from-primary to-primary/80">
 	<div class="max-w-md mx-auto py-8">
 		<!-- Back button -->
-		<div class="mb-6">
-			<a href="/" class="text-white hover:text-primary-100 flex items-center gap-2">
-				<span>←</span> Back
-			</a>
-		</div>
+		<Button
+			variant="ghost"
+			class="mb-6 text-white hover:bg-white/20"
+			on:click={() => goto('/')}
+		>
+			<ArrowLeft class="w-4 h-4 mr-2" />
+			Back
+		</Button>
 
-		<div class="card space-y-6">
+		<Card class="p-6 space-y-6">
 			<div>
 				<h1 class="text-2xl font-bold mb-2">Join Game</h1>
-				<p class="text-gray-600">Enter the room code and your name</p>
+				<p class="text-muted-foreground">Enter the room code and your name</p>
 			</div>
 
-			<form on:submit|preventDefault={handleJoin} class="space-y-4">
+			<form on:submit|preventDefault={handleJoin} class="space-y-5">
 				<!-- Room code -->
-				<div>
-					<label for="code" class="block text-sm font-medium text-gray-700 mb-2">
+				<div class="space-y-2">
+					<label for="code" class="block text-sm font-medium">
 						Room Code
 					</label>
 					<input
@@ -90,17 +95,18 @@
 						type="text"
 						bind:value={roomCode}
 						placeholder="ABC123"
-						class="input text-center text-2xl font-mono tracking-wider uppercase"
+						class="w-full px-4 py-3 text-center text-2xl font-mono font-bold tracking-wider uppercase rounded-lg border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
 						maxlength="6"
 						disabled={loading}
 						autocomplete="off"
 						autocapitalize="characters"
+						style="min-height: 56px;"
 					/>
 				</div>
 
 				<!-- Your name -->
-				<div>
-					<label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+				<div class="space-y-2">
+					<label for="name" class="block text-sm font-medium">
 						Your Name
 					</label>
 					<input
@@ -108,25 +114,30 @@
 						type="text"
 						bind:value={displayName}
 						placeholder="Enter your name"
-						class="input"
+						class="w-full px-4 py-3 text-base rounded-lg border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
 						maxlength="20"
 						disabled={loading}
 						autocomplete="off"
+						style="min-height: 48px;"
 					/>
 				</div>
 
 				<!-- Error message -->
 				{#if error}
-					<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-						{error}
-					</div>
+					<Card class="p-4 bg-destructive/10 border-destructive/20">
+						<p class="text-sm text-destructive">{error}</p>
+					</Card>
 				{/if}
 
 				<!-- Submit button -->
-				<button type="submit" class="btn btn-primary w-full" disabled={loading || !roomCode.trim() || !displayName.trim()}>
+				<Button
+					type="submit"
+					class="w-full h-12 text-base"
+					disabled={loading || !roomCode.trim() || !displayName.trim()}
+				>
 					{loading ? 'Joining...' : 'Join Room'}
-				</button>
+				</Button>
 			</form>
-		</div>
+		</Card>
 	</div>
 </div>
