@@ -245,7 +245,10 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Game started in room %s", roomCode)
 
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
 }
 
 // HandleWebSocket upgrades HTTP connection to WebSocket.

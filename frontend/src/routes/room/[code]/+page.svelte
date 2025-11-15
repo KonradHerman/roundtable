@@ -105,8 +105,8 @@
 			await api.startGame(roomCode, {
 				config: {
 					roles,
-					nightDuration: 180000000000, // 3 minutes in nanoseconds
-					dayDuration: 300000000000    // 5 minutes in nanoseconds
+					nightDuration: 30000000000,  // 30 seconds in nanoseconds
+					dayDuration: 120000000000    // 2 minutes in nanoseconds
 				}
 			});
 		} catch (err: any) {
