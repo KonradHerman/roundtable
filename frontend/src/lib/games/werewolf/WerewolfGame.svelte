@@ -9,6 +9,7 @@
 	import DayPhase from './DayPhase.svelte';
 	import Results from './Results.svelte';
 
+	// eslint-disable-next-line no-unused-vars
 	export let roomCode: string;
 	export let roomState: any;
 	export let wsStore: any;

@@ -1,0 +1,9 @@
+# Nixpacks configuration for backend (Go)
+[phases.setup]
+nixPkgs = ["go_1_21"]
+
+[phases.build]
+cmds = ["go build -o server ./cmd/server"]
+
+[start]
+cmd = "./server"

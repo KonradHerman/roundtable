@@ -64,7 +64,7 @@
 				particleCount: 100,
 				spread: 70,
 				colors: ['#0ea5e9', '#f59e0b', '#10b981']
-			}} />
+			}}></div>
 		</div>
 	{/if}
 

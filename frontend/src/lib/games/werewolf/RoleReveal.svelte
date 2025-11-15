@@ -80,39 +80,40 @@
 	in:fade={{ duration: 300 }}
 	out:fade={{ duration: 300 }}
 >
-	<Card
-		class="max-w-md w-full p-8 bg-gradient-to-br {info.color} text-white border-0"
-		in:scale={{ duration: 500, delay: 100, start: 0.5 }}
-	>
-		<div class="text-center space-y-6">
-			<!-- Role emoji -->
-			<div class="text-8xl animate-bounce">
-				{info.emoji}
-			</div>
+	<div in:scale={{ duration: 500, delay: 100, start: 0.5 }}>
+		<Card
+			class="max-w-md w-full p-8 bg-gradient-to-br {info.color} text-white border-0"
+		>
+			<div class="text-center space-y-6">
+				<!-- Role emoji -->
+				<div class="text-8xl animate-bounce">
+					{info.emoji}
+				</div>
 
-			<!-- Role name -->
-			<div>
-				<h2 class="text-4xl font-bold mb-2 capitalize">
-					{role.replace('_', ' ')}
-				</h2>
-				<p class="text-xl text-white/90">
-					{info.team}
+				<!-- Role name -->
+				<div>
+					<h2 class="text-4xl font-bold mb-2 capitalize">
+						{role.replace('_', ' ')}
+					</h2>
+					<p class="text-xl text-white/90">
+						{info.team}
+					</p>
+				</div>
+
+				<!-- Description -->
+				<p class="text-lg text-white/90">
+					{info.description}
 				</p>
-			</div>
 
-			<!-- Description -->
-			<p class="text-lg text-white/90">
-				{info.description}
-			</p>
-
-			<!-- Instruction -->
-			<div class="pt-4 border-t border-white/20">
-				<p class="text-sm text-white/75">
-					Remember your role - this message will disappear soon
-				</p>
+				<!-- Instruction -->
+				<div class="pt-4 border-t border-white/20">
+					<p class="text-sm text-white/75">
+						Remember your role - this message will disappear soon
+					</p>
+				</div>
 			</div>
-		</div>
-	</Card>
+		</Card>
+	</div>
 </div>
 
 <style>

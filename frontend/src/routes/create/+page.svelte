@@ -95,9 +95,9 @@
 
 				<!-- Game selection -->
 				<div class="space-y-2">
-					<label class="block text-sm font-medium">
+					<div class="block text-sm font-medium mb-2">
 						Choose Game
-					</label>
+					</div>
 					<div class="space-y-2">
 						{#each games as game}
 							<label class="flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary/50 {selectedGame === game.id ? 'border-primary bg-primary/5' : 'border-input'}">
