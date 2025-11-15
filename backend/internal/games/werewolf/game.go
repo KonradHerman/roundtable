@@ -14,11 +14,11 @@ import (
 type Phase string
 
 const (
-	PhaseSetup       Phase = "setup"
-	PhaseRoleReveal  Phase = "role_reveal"
-	PhaseNight       Phase = "night"
-	PhaseDay         Phase = "day"
-	PhaseResults     Phase = "results"
+	PhaseSetup      Phase = "setup"
+	PhaseRoleReveal Phase = "role_reveal"
+	PhaseNight      Phase = "night"
+	PhaseDay        Phase = "day"
+	PhaseResults    Phase = "results"
 )
 
 // Game implements the core.Game interface for One Night Werewolf.
@@ -33,8 +33,8 @@ type Game struct {
 	phase                Phase
 	phaseStartedAt       time.Time
 	phaseEndsAt          time.Time
-	timerActive          bool                    // Whether day phase timer is active
-	nightActionsComplete map[RoleType]bool       // Track which roles have acted
+	timerActive          bool              // Whether day phase timer is active
+	nightActionsComplete map[RoleType]bool // Track which roles have acted
 }
 
 // NewGame creates a new werewolf game instance.
@@ -387,6 +387,12 @@ func (g *Game) calculateResults() core.GameResults {
 		}
 	}
 
+	// Convert players map to slice for frontend
+	playersList := make([]*core.Player, 0, len(g.players))
+	for _, player := range g.players {
+		playersList = append(playersList, player)
+	}
+
 	return core.GameResults{
 		Winners:   winners,
 		WinReason: winReason,
@@ -394,6 +400,7 @@ func (g *Game) calculateResults() core.GameResults {
 			"votes":      g.votes,
 			"eliminated": eliminated,
 			"roles":      g.roleAssignments,
+			"players":    playersList,
 		},
 	}
 }
