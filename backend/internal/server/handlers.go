@@ -29,6 +29,11 @@ func NewServer(store store.Store) *Server {
 	}
 }
 
+// ConnectionManager returns the connection manager (for phase checks).
+func (s *Server) ConnectionManager() *ConnectionManager {
+	return s.connMgr
+}
+
 // CreateRoomRequest is the payload for creating a room.
 type CreateRoomRequest struct {
 	GameType   string `json:"gameType"`
@@ -245,7 +250,10 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Game started in room %s", roomCode)
 
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
 }
 
 // HandleWebSocket upgrades HTTP connection to WebSocket.

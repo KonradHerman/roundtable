@@ -39,6 +39,10 @@ type Game interface {
 
 	// GetResults returns the final game results (only valid if IsFinished).
 	GetResults() GameResults
+
+	// CheckPhaseTimeout checks if the current phase has expired and should advance.
+	// Returns events if phase advances, nil if no change needed.
+	CheckPhaseTimeout() ([]GameEvent, error)
 }
 
 // GameConfig is a marker interface for game-specific configuration.

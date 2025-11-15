@@ -56,8 +56,10 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 		return nil, err
 	}
 
-	if len(players) != len(wConfig.Roles) {
-		return nil, fmt.Errorf("player count (%d) must match role count (%d)", len(players), len(wConfig.Roles))
+	// One Night Werewolf rule: must have exactly 3 more roles than players (center cards)
+	expectedRoles := len(players) + 3
+	if len(wConfig.Roles) != expectedRoles {
+		return nil, fmt.Errorf("role count (%d) must be player count + 3 (%d)", len(wConfig.Roles), expectedRoles)
 	}
 
 	g.config = wConfig
@@ -82,7 +84,7 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 	})
 	events = append(events, gameStartedEvent)
 
-	// Assign roles (private events)
+	// Assign roles to players (first N roles go to players)
 	for i, player := range players {
 		role := shuffledRoles[i]
 		g.roleAssignments[player.ID] = role
@@ -93,6 +95,9 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 		}, []string{player.ID})
 		events = append(events, roleEvent)
 	}
+
+	// The remaining 3 roles are "center cards" (not assigned to players yet)
+	// They can be viewed/swapped by certain roles during night phase
 
 	// Werewolf wakeup (show other werewolves to each werewolf)
 	werewolfIDs := g.getPlayersByRole(RoleWerewolf)

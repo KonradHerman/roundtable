@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { api, type CreateRoomRequest } from '$lib/api/client';
 	import { session } from '$lib/stores/session';
+	import { Card, Button } from '$lib/components/ui';
+	import { ArrowLeft, Users } from 'lucide-svelte';
 
 	let displayName = '';
 	let selectedGame = 'werewolf';
@@ -10,9 +12,9 @@
 	let error = '';
 
 	const games = [
-		{ id: 'werewolf', name: 'One Night Werewolf', players: '3-10' },
-		// Future: { id: 'avalon', name: 'Avalon', players: '5-10' },
-		// Future: { id: 'bohnanza', name: 'Bohnanza', players: '3-7' }
+		{ id: 'werewolf', name: 'One Night Werewolf', players: '3-10', emoji: '🐺' },
+		// Future: { id: 'avalon', name: 'Avalon', players: '5-10', emoji: '⚔️' },
+		// Future: { id: 'bohnanza', name: 'Bohnanza', players: '3-7', emoji: '🌱' }
 	];
 
 	async function handleCreate() {
@@ -54,25 +56,28 @@
 	<title>Create Room - Roundtable</title>
 </svelte:head>
 
-<div class="min-h-screen p-6 bg-gradient-to-br from-primary-500 to-primary-700">
+<div class="min-h-screen p-6 bg-gradient-to-br from-primary to-primary/80">
 	<div class="max-w-md mx-auto py-8">
 		<!-- Back button -->
-		<div class="mb-6">
-			<a href="/" class="text-white hover:text-primary-100 flex items-center gap-2">
-				<span>←</span> Back
-			</a>
-		</div>
+		<Button
+			variant="ghost"
+			class="mb-6 text-white hover:bg-white/20"
+			on:click={() => goto('/')}
+		>
+			<ArrowLeft class="w-4 h-4 mr-2" />
+			Back
+		</Button>
 
-		<div class="card space-y-6">
+		<Card class="p-6 space-y-6">
 			<div>
 				<h1 class="text-2xl font-bold mb-2">Host a Game</h1>
-				<p class="text-gray-600">Choose a game and enter your name</p>
+				<p class="text-muted-foreground">Choose a game and enter your name</p>
 			</div>
 
-			<form on:submit|preventDefault={handleCreate} class="space-y-4">
+			<form on:submit|preventDefault={handleCreate} class="space-y-5">
 				<!-- Your name -->
-				<div>
-					<label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+				<div class="space-y-2">
+					<label for="name" class="block text-sm font-medium">
 						Your Name
 					</label>
 					<input
@@ -80,67 +85,83 @@
 						type="text"
 						bind:value={displayName}
 						placeholder="Enter your name"
-						class="input"
+						class="w-full px-4 py-3 text-base rounded-lg border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
 						maxlength="20"
 						disabled={loading}
 						autocomplete="off"
+						style="min-height: 48px;"
 					/>
 				</div>
 
 				<!-- Game selection -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+				<div class="space-y-2">
+					<div class="block text-sm font-medium mb-2">
 						Choose Game
-					</label>
+					</div>
 					<div class="space-y-2">
 						{#each games as game}
-							<label class="flex items-center p-4 border-2 rounded-xl cursor-pointer transition-colors
-								{selectedGame === game.id ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400'}">
+							<label class="flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary/50 {selectedGame === game.id ? 'border-primary bg-primary/5' : 'border-input'}">
 								<input
 									type="radio"
 									name="game"
 									value={game.id}
 									bind:group={selectedGame}
-									class="mr-3"
+									class="sr-only"
 									disabled={loading}
 								/>
+								<span class="text-3xl">{game.emoji}</span>
 								<div class="flex-1">
 									<div class="font-semibold">{game.name}</div>
-									<div class="text-sm text-gray-500">{game.players} players</div>
+									<div class="text-sm text-muted-foreground">{game.players} players</div>
 								</div>
+								{#if selectedGame === game.id}
+									<div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+										<div class="w-2 h-2 rounded-full bg-white"></div>
+									</div>
+								{/if}
 							</label>
 						{/each}
 					</div>
 				</div>
 
 				<!-- Max players -->
-				<div>
-					<label for="maxPlayers" class="block text-sm font-medium text-gray-700 mb-2">
-						Max Players: {maxPlayers}
-					</label>
+				<div class="space-y-2">
+					<div class="flex items-center justify-between">
+						<label for="maxPlayers" class="text-sm font-medium">
+							Max Players
+						</label>
+						<div class="flex items-center gap-2">
+							<Users class="w-4 h-4 text-muted-foreground" />
+							<span class="font-semibold">{maxPlayers}</span>
+						</div>
+					</div>
 					<input
 						id="maxPlayers"
 						type="range"
 						bind:value={maxPlayers}
 						min="3"
 						max="15"
-						class="w-full"
+						class="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
 						disabled={loading}
 					/>
 				</div>
 
 				<!-- Error message -->
 				{#if error}
-					<div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-						{error}
-					</div>
+					<Card class="p-4 bg-destructive/10 border-destructive/20">
+						<p class="text-sm text-destructive">{error}</p>
+					</Card>
 				{/if}
 
 				<!-- Submit button -->
-				<button type="submit" class="btn btn-primary w-full" disabled={loading}>
+				<Button
+					type="submit"
+					class="w-full h-12 text-base"
+					disabled={loading || !displayName.trim()}
+				>
 					{loading ? 'Creating...' : 'Create Room'}
-				</button>
+				</Button>
 			</form>
-		</div>
+		</Card>
 	</div>
 </div>

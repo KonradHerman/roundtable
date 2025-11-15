@@ -123,24 +123,19 @@ roundtable/
 
 ### Prerequisites
 
-- **Docker & Docker Compose** (for easiest deployment)
-- OR:
-  - Go 1.21+
-  - Node.js 20+
+- Go 1.21+
+- Node.js 20+
 
-### Option 1: Docker (Recommended for Homelab)
+### Option 1: Railway Deployment (Recommended)
 
-```bash
-# Clone the repo
-git clone <your-repo-url>
-cd roundtable
+This project uses Railpack (Railway's build system) for deployment:
 
-# Build and run
-docker-compose up --build
-
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8080
-```
+1. Push to GitHub
+2. Create two services in Railway:
+   - **Backend**: Set root directory to `backend/`
+   - **Frontend**: Set root directory to `frontend/`
+3. Railway will auto-detect and build both services
+4. Set environment variables as needed
 
 ### Option 2: Local Development
 
@@ -366,11 +361,12 @@ POST /api/rooms/:code/start
 - **Mobile targets**: All touch targets 48x48px minimum
 - **Offline**: Detects disconnect, shows banner, auto-reconnects
 
-### Docker
+### Deployment
 
-- **Multi-stage builds**: Smaller images
+- **Railpack**: Railway's build system with automatic language detection
+- **Monorepo**: Separate services for backend and frontend
 - **Health checks**: Backend has `/health` endpoint
-- **Networking**: Frontend → Backend via Docker network
+- **Environment**: Configure API_URL for frontend to connect to backend
 
 ---
 
