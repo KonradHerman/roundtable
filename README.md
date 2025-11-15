@@ -128,7 +128,7 @@ roundtable/
 
 ### Option 1: Railway Deployment (Recommended)
 
-This project uses Nixpacks for deployment and works great on Railway:
+This project uses Railpack (Railway's build system) for deployment:
 
 1. Push to GitHub
 2. Create two services in Railway:
@@ -363,7 +363,7 @@ POST /api/rooms/:code/start
 
 ### Deployment
 
-- **Nixpacks**: Automatic build detection for Go and Node.js
+- **Railpack**: Railway's build system with automatic language detection
 - **Monorepo**: Separate services for backend and frontend
 - **Health checks**: Backend has `/health` endpoint
 - **Environment**: Configure API_URL for frontend to connect to backend
