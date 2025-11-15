@@ -11,6 +11,7 @@ frontend/.svelte-kit
 frontend/build
 frontend/.env
 frontend/.env.*
+frontend/package-lock.json
 
 # IDEs
 .vscode/
