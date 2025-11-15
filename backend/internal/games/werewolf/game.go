@@ -387,12 +387,6 @@ func (g *Game) calculateResults() core.GameResults {
 		}
 	}
 
-	// Convert players map to slice for frontend
-	playersList := make([]*core.Player, 0, len(g.players))
-	for _, player := range g.players {
-		playersList = append(playersList, player)
-	}
-
 	return core.GameResults{
 		Winners:   winners,
 		WinReason: winReason,
@@ -400,7 +394,6 @@ func (g *Game) calculateResults() core.GameResults {
 			"votes":      g.votes,
 			"eliminated": eliminated,
 			"roles":      g.roleAssignments,
-			"players":    playersList,
 		},
 	}
 }
