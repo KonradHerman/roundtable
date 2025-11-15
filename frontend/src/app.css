@@ -51,23 +51,23 @@
 	}
 
 	.btn-primary {
-		@apply bg-primary-600 text-white hover:bg-primary-700 disabled:bg-gray-400;
+		@apply bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-gray-400;
 	}
 
 	.btn-secondary {
-		@apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+		@apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
 	}
 
 	.btn-danger {
-		@apply bg-red-600 text-white hover:bg-red-700;
+		@apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
 	}
 
 	.card {
-		@apply bg-white rounded-2xl shadow-lg p-6;
+		@apply bg-card text-card-foreground rounded-2xl shadow-lg p-6;
 	}
 
 	.input {
-		@apply w-full px-4 py-4 text-lg rounded-xl border-2 border-gray-300 focus:border-primary-500 focus:outline-none;
+		@apply w-full px-4 py-4 text-lg rounded-xl border-2 border-input focus:border-primary focus:outline-none;
 		min-height: 48px;
 	}
 }
