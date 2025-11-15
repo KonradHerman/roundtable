@@ -46,6 +46,23 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				// Additional Gruvbox colors
+				gruvbox: {
+					'red': '#cc241d',
+					'red-light': '#fb4934',
+					'green': '#98971a',
+					'green-light': '#b8bb26',
+					'yellow': '#d79921',
+					'yellow-light': '#fabd2f',
+					'blue': '#458588',
+					'blue-light': '#83a598',
+					'purple': '#b16286',
+					'purple-light': '#d3869b',
+					'aqua': '#689d6a',
+					'aqua-light': '#8ec07c',
+					'orange': '#d65d0e',
+					'orange-light': '#fe8019',
 				}
 			},
 			borderRadius: {

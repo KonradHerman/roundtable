@@ -236,15 +236,18 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the current event log length before starting
+	eventLogLengthBefore := len(room.EventLog)
+
 	// Start game
 	if err := room.StartGame(game, config); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Broadcast events to all players
-	events := room.EventLog[len(room.EventLog)-len(room.GetPlayers()):] // Get recent events
-	for _, event := range events {
+	// Broadcast all new events that were created during game start
+	newEvents := room.EventLog[eventLogLengthBefore:]
+	for _, event := range newEvents {
 		s.connMgr.BroadcastEvent(roomCode, event)
 	}
 

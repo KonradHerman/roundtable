@@ -66,12 +66,12 @@
 	<title>Join Room - Roundtable</title>
 </svelte:head>
 
-<div class="min-h-screen p-6 bg-gradient-to-br from-primary to-primary/80">
+<div class="min-h-screen p-6 bg-background">
 	<div class="max-w-md mx-auto py-8">
 		<!-- Back button -->
 		<Button
 			variant="ghost"
-			class="mb-6 text-white hover:bg-white/20"
+			class="mb-6"
 			on:click={() => goto('/')}
 		>
 			<ArrowLeft class="w-4 h-4 mr-2" />

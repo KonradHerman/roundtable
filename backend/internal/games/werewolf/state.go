@@ -4,20 +4,22 @@ import "time"
 
 // PlayerState is the werewolf-specific state for a single player.
 type PlayerState struct {
-	Phase            string    `json:"phase"`
-	PhaseEndsAt      time.Time `json:"phaseEndsAt"`
-	YourRole         RoleType  `json:"yourRole"`
-	HasVoted         bool      `json:"hasVoted"`
-	OtherWerewolves  []string  `json:"otherWerewolves,omitempty"`
-	OtherMasons      []string  `json:"otherMasons,omitempty"`
+	Phase              string    `json:"phase"`
+	PhaseEndsAt        time.Time `json:"phaseEndsAt"`
+	YourRole           RoleType  `json:"yourRole"`
+	HasVoted           bool      `json:"hasVoted"`
+	HasAcknowledged    bool      `json:"hasAcknowledged"`
+	TimerActive        bool      `json:"timerActive"`
 }
 
 // PublicState is the werewolf-specific public state.
 type PublicState struct {
-	Phase          string    `json:"phase"`
-	PhaseEndsAt    time.Time `json:"phaseEndsAt"`
-	PlayerCount    int       `json:"playerCount"`
-	VotesSubmitted int       `json:"votesSubmitted"`
+	Phase               string    `json:"phase"`
+	PhaseEndsAt         time.Time `json:"phaseEndsAt"`
+	PlayerCount         int       `json:"playerCount"`
+	VotesSubmitted      int       `json:"votesSubmitted"`
+	AcknowledgementsCount int     `json:"acknowledgementsCount"`
+	TimerActive         bool      `json:"timerActive"`
 }
 
 // Event payloads
@@ -62,4 +64,31 @@ type RobberSwapPayload struct {
 type RobberResultPayload struct {
 	TargetID string   `json:"targetId"`
 	NewRole  RoleType `json:"newRole"`
+}
+
+// New payloads for ONUW implementation
+type RoleAcknowledgedPayload struct {
+	PlayerID string `json:"playerId"`
+	Count    int    `json:"count"`
+	Total    int    `json:"total"`
+}
+
+type NightScriptPayload struct {
+	Script []NightScriptStep `json:"script"`
+}
+
+type NightScriptStep struct {
+	Role        RoleType `json:"role"`
+	Instruction string   `json:"instruction"`
+	Order       int      `json:"order"`
+}
+
+type TimerToggledPayload struct {
+	Active      bool       `json:"active"`
+	PhaseEndsAt *time.Time `json:"phaseEndsAt,omitempty"`
+}
+
+type TimerExtendedPayload struct {
+	PhaseEndsAt time.Time `json:"phaseEndsAt"`
+	ExtendedBy  int       `json:"extendedBy"` // seconds
 }

@@ -14,13 +14,13 @@
 	<title>Roundtable - Party Games</title>
 </svelte:head>
 
-<div class="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-br from-primary to-primary/80">
+<div class="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
 	<div class="w-full max-w-md space-y-8">
 		<!-- Logo/Title -->
 		<div class="text-center">
-			<h1 class="text-6xl font-bold text-white mb-2">🎲</h1>
-			<h1 class="text-4xl font-bold text-white mb-2">Roundtable</h1>
-			<p class="text-white/90 text-lg">Party games for friends</p>
+			<h1 class="text-6xl font-bold mb-2">🎲</h1>
+			<h1 class="text-5xl font-bold text-primary mb-2">Roundtable</h1>
+			<p class="text-foreground/80 text-lg">Party games for friends</p>
 		</div>
 
 		<!-- Main actions -->
@@ -31,10 +31,10 @@
 
 			<div class="relative">
 				<div class="absolute inset-0 flex items-center">
-					<div class="w-full border-t border-gray-300"></div>
+					<div class="w-full border-t border-border"></div>
 				</div>
 				<div class="relative flex justify-center text-sm">
-					<span class="px-4 bg-white text-gray-500">or join with code</span>
+					<span class="px-4 bg-card text-muted-foreground">or join with code</span>
 				</div>
 			</div>
 
@@ -55,7 +55,7 @@
 		</div>
 
 		<!-- Info -->
-		<div class="text-center text-white/80 text-sm">
+		<div class="text-center text-muted-foreground text-sm">
 			<p>No signup required • Play with friends in person</p>
 		</div>
 	</div>

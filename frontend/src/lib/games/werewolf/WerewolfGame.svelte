@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { gameStore } from '$lib/stores/game';
 	import { session } from '$lib/stores/session';
-	import { Card, Button, Badge } from '$lib/components/ui';
-	import { Moon, Sun, Clock, Eye } from 'lucide-svelte';
+	import { Card, Badge } from '$lib/components/ui';
+	import { Moon, Sun, Eye, Clock } from 'lucide-svelte';
 	import RoleReveal from './RoleReveal.svelte';
 	import NightPhase from './NightPhase.svelte';
 	import DayPhase from './DayPhase.svelte';
@@ -17,11 +17,11 @@
 	let myRole: string | null = null;
 	let currentPhase: string = 'setup';
 	let phaseEndsAt: Date | null = null;
-	let timeRemaining: number = 0;
-	let otherWerewolves: string[] = [];
-	let otherMasons: string[] = [];
-	let seerResult: any = null;
-	let showRoleReveal = true;
+	let acknowledged: boolean = false;
+	let acknowledgementsCount: number = 0;
+	let totalPlayers: number = 0;
+	let nightScript: any[] = [];
+	let timerActive: boolean = false;
 
 	// Subscribe to game events
 	let unsubscribe = gameStore.subscribe(($game) => {
@@ -29,100 +29,92 @@
 		$game.events.forEach(event => {
 			if (event.type === 'role_assigned') {
 				myRole = event.payload.role;
-			} else if (event.type === 'werewolf_wakeup') {
-				otherWerewolves = event.payload.otherWerewolves || [];
-			} else if (event.type === 'mason_wakeup') {
-				otherMasons = event.payload.otherMasons || [];
 			} else if (event.type === 'phase_changed') {
 				currentPhase = event.payload.phase.name;
 				if (event.payload.phase.endsAt) {
 					phaseEndsAt = new Date(event.payload.phase.endsAt);
 				}
-				// Hide role reveal after a few seconds
-				if (currentPhase === 'night') {
-					setTimeout(() => showRoleReveal = false, 5000);
+			} else if (event.type === 'role_acknowledged') {
+				acknowledgementsCount = event.payload.count;
+				totalPlayers = event.payload.total;
+				if (event.payload.playerId === $session?.playerId) {
+					acknowledged = true;
 				}
-			} else if (event.type === 'seer_result') {
-				seerResult = event.payload;
+			} else if (event.type === 'night_script') {
+				nightScript = event.payload.script || [];
+			} else if (event.type === 'timer_toggled') {
+				timerActive = event.payload.active;
+				if (event.payload.phaseEndsAt) {
+					phaseEndsAt = new Date(event.payload.phaseEndsAt);
+				}
+			} else if (event.type === 'timer_extended') {
+				phaseEndsAt = new Date(event.payload.phaseEndsAt);
 			}
 		});
 	});
 
 	onMount(() => {
-		// Timer countdown
-		const interval = setInterval(() => {
-			if (phaseEndsAt) {
-				const now = new Date().getTime();
-				const end = phaseEndsAt.getTime();
-				timeRemaining = Math.max(0, Math.floor((end - now) / 1000));
-			}
-		}, 1000);
-
 		return () => {
-			clearInterval(interval);
 			if (unsubscribe) unsubscribe();
 		};
 	});
 
-	function formatTime(seconds: number): string {
-		const mins = Math.floor(seconds / 60);
-		const secs = seconds % 60;
-		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	function handleAcknowledgeRole() {
+		if (!wsStore || acknowledged) return;
+
+		wsStore.sendAction({
+			type: 'acknowledge_role',
+			payload: {}
+		});
 	}
 
-	function getPlayerName(playerId: string): string {
-		const player = roomState?.players?.find((p: any) => p.id === playerId);
-		return player?.displayName || 'Unknown';
-	}
-
-	$: phaseIcon = currentPhase === 'night' ? Moon : Sun;
-	$: phaseColor = currentPhase === 'night' ? 'bg-indigo-600' : 'bg-amber-500';
+	$: phaseIcon = currentPhase === 'night' ? Moon : currentPhase === 'day' ? Sun : currentPhase === 'role_reveal' ? Eye : Clock;
+	$: phaseColor = currentPhase === 'night' ? 'bg-gruvbox-purple' : currentPhase === 'day' ? 'bg-gruvbox-yellow' : currentPhase === 'role_reveal' ? 'bg-gruvbox-blue' : 'bg-muted';
 </script>
 
 <div class="space-y-6">
 	<!-- Phase header -->
-	<Card class="p-6 {phaseColor} text-white">
+	<Card class="p-6 {phaseColor} text-white border-0">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<svelte:component this={phaseIcon} class="w-8 h-8" />
 				<div>
-					<h2 class="text-2xl font-bold capitalize">{currentPhase} Phase</h2>
-					{#if currentPhase === 'night'}
-						<p class="text-white/90 text-sm">Stay quiet and use your phone...</p>
+					<h2 class="text-2xl font-bold capitalize">
+						{currentPhase.replace('_', ' ')} Phase
+					</h2>
+					{#if currentPhase === 'role_reveal'}
+						<p class="text-white/90 text-sm">Look at your role card</p>
+					{:else if currentPhase === 'night'}
+						<p class="text-white/90 text-sm">Everyone close your eyes</p>
 					{:else if currentPhase === 'day'}
 						<p class="text-white/90 text-sm">Discuss and vote!</p>
 					{/if}
 				</div>
 			</div>
-			{#if phaseEndsAt && timeRemaining > 0}
-				<div class="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-lg">
-					<Clock class="w-5 h-5" />
-					<span class="text-2xl font-mono font-bold">{formatTime(timeRemaining)}</span>
-				</div>
-			{/if}
 		</div>
 	</Card>
 
-	<!-- Role reveal (shows briefly when game starts) -->
-	{#if showRoleReveal && myRole}
-		<RoleReveal role={myRole} />
-	{/if}
-
 	<!-- Phase-specific content -->
-	{#if currentPhase === 'night'}
+	{#if currentPhase === 'role_reveal' && myRole}
+		<RoleReveal 
+			role={myRole}
+			{acknowledged}
+			{acknowledgementsCount}
+			{totalPlayers}
+			onAcknowledge={handleAcknowledgeRole}
+		/>
+	{:else if currentPhase === 'night'}
 		<NightPhase
-			{myRole}
-			{otherWerewolves}
-			{otherMasons}
-			{seerResult}
 			{roomState}
 			{wsStore}
-			{getPlayerName}
+			{nightScript}
 		/>
 	{:else if currentPhase === 'day'}
 		<DayPhase
 			{roomState}
 			{wsStore}
+			{timerActive}
+			{phaseEndsAt}
 		/>
 	{:else if currentPhase === 'results'}
 		<Results />

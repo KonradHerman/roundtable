@@ -63,13 +63,13 @@
 			<div use:confetti={{
 				particleCount: 100,
 				spread: 70,
-				colors: ['#0ea5e9', '#f59e0b', '#10b981']
+				colors: ['#d79921', '#b8bb26', '#83a598', '#d3869b']
 			}}></div>
 		</div>
 	{/if}
 
 	<!-- Results header -->
-	<Card class="p-6 {didIWin ? 'bg-green-500' : 'bg-red-500'} text-white border-0">
+	<Card class="p-6 {didIWin ? 'bg-gruvbox-green' : 'bg-gruvbox-red'} text-white border-0">
 		<div class="text-center space-y-3">
 			<div class="text-6xl">
 				{didIWin ? '🎉' : '😔'}
@@ -87,16 +87,16 @@
 
 	<!-- Eliminated players -->
 	{#if eliminated.length > 0}
-		<Card class="p-6">
+		<Card class="p-6 bg-gruvbox-red/10 border-gruvbox-red">
 			<div class="flex items-center gap-3 mb-4">
-				<Skull class="w-6 h-6 text-destructive" />
+				<Skull class="w-6 h-6 text-gruvbox-red-light" />
 				<h3 class="font-semibold text-lg">Eliminated</h3>
 			</div>
 			<div class="space-y-2">
 				{#each eliminated as playerId}
 					{@const player = gameResults?.finalState?.players?.find((p: any) => p.id === playerId)}
 					{@const role = allRoles[playerId]}
-					<div class="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+					<div class="flex items-center justify-between p-3 bg-gruvbox-red/20 border border-gruvbox-red rounded-lg">
 						<div class="flex items-center gap-3">
 							<span class="text-2xl">{getRoleEmoji(role)}</span>
 							<div>
@@ -104,7 +104,7 @@
 								<p class="text-sm text-muted-foreground capitalize">{role?.replace('_', ' ')}</p>
 							</div>
 						</div>
-						<Badge variant="destructive">Eliminated</Badge>
+						<Badge class="bg-gruvbox-red text-white">Eliminated</Badge>
 					</div>
 				{/each}
 			</div>
@@ -112,16 +112,16 @@
 	{/if}
 
 	<!-- All roles revealed -->
-	<Card class="p-6">
+	<Card class="p-6 bg-card border-primary">
 		<div class="flex items-center gap-3 mb-4">
 			<Trophy class="w-6 h-6 text-primary" />
-			<h3 class="font-semibold text-lg">All Roles</h3>
+			<h3 class="font-semibold text-lg">All Roles Revealed</h3>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 			{#each Object.entries(allRoles) as [playerId, role]}
 				{@const player = gameResults?.finalState?.players?.find((p: any) => p.id === playerId)}
 				{@const isWinner = winners.includes(playerId)}
-				<div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg {isWinner ? 'ring-2 ring-green-500' : ''}">
+				<div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg {isWinner ? 'ring-2 ring-gruvbox-green' : ''}">
 					<div class="flex items-center gap-3">
 						<span class="text-2xl">{getRoleEmoji(role)}</span>
 						<div>
@@ -139,7 +139,7 @@
 							{role}
 						</Badge>
 						{#if isWinner}
-							<Badge variant="outline" class="bg-green-500/10 text-green-700 border-green-500/20">
+							<Badge class="bg-gruvbox-green text-white border-gruvbox-green">
 								Winner
 							</Badge>
 						{/if}

@@ -14,34 +14,41 @@ import (
 type Phase string
 
 const (
-	PhaseSetup   Phase = "setup"
-	PhaseNight   Phase = "night"
-	PhaseDay     Phase = "day"
-	PhaseResults Phase = "results"
+	PhaseSetup       Phase = "setup"
+	PhaseRoleReveal  Phase = "role_reveal"
+	PhaseNight       Phase = "night"
+	PhaseDay         Phase = "day"
+	PhaseResults     Phase = "results"
 )
 
 // Game implements the core.Game interface for One Night Werewolf.
 type Game struct {
-	config            *Config
-	players           map[string]*core.Player // playerID → player
-	roleAssignments   map[string]RoleType     // playerID → role
-	originalRoles     map[string]RoleType     // playerID → original role (before night actions)
-	votes             map[string]string       // voterID → targetID
-	phase             Phase
-	phaseStartedAt    time.Time
-	phaseEndsAt       time.Time
-	nightActionsComplete map[RoleType]bool    // Track which roles have acted
+	config               *Config
+	players              map[string]*core.Player // playerID → player
+	roleAssignments      map[string]RoleType     // playerID → role
+	originalRoles        map[string]RoleType     // playerID → original role (before night actions)
+	centerCards          []RoleType              // 3 cards in the center
+	roleAcknowledgements map[string]bool         // playerID → acknowledged
+	votes                map[string]string       // voterID → targetID
+	phase                Phase
+	phaseStartedAt       time.Time
+	phaseEndsAt          time.Time
+	timerActive          bool                    // Whether day phase timer is active
+	nightActionsComplete map[RoleType]bool       // Track which roles have acted
 }
 
 // NewGame creates a new werewolf game instance.
 func NewGame() core.Game {
 	return &Game{
-		players:           make(map[string]*core.Player),
-		roleAssignments:   make(map[string]RoleType),
-		originalRoles:     make(map[string]RoleType),
-		votes:             make(map[string]string),
+		players:              make(map[string]*core.Player),
+		roleAssignments:      make(map[string]RoleType),
+		originalRoles:        make(map[string]RoleType),
+		roleAcknowledgements: make(map[string]bool),
+		votes:                make(map[string]string),
 		nightActionsComplete: make(map[RoleType]bool),
-		phase:             PhaseSetup,
+		centerCards:          make([]RoleType, 0, 3),
+		phase:                PhaseSetup,
+		timerActive:          false,
 	}
 }
 
@@ -96,51 +103,17 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 		events = append(events, roleEvent)
 	}
 
-	// The remaining 3 roles are "center cards" (not assigned to players yet)
-	// They can be viewed/swapped by certain roles during night phase
+	// The remaining 3 roles are "center cards" (not assigned to players)
+	g.centerCards = shuffledRoles[len(players):]
 
-	// Werewolf wakeup (show other werewolves to each werewolf)
-	werewolfIDs := g.getPlayersByRole(RoleWerewolf)
-	for _, werewolfID := range werewolfIDs {
-		otherWerewolves := make([]string, 0)
-		for _, wid := range werewolfIDs {
-			if wid != werewolfID {
-				otherWerewolves = append(otherWerewolves, wid)
-			}
-		}
-
-		wakeupEvent, _ := core.NewPrivateEvent("werewolf_wakeup", "system", WerewolfWakeupPayload{
-			OtherWerewolves: otherWerewolves,
-		}, []string{werewolfID})
-		events = append(events, wakeupEvent)
-	}
-
-	// Masons wakeup (show other masons)
-	masonIDs := g.getPlayersByRole(RoleMason)
-	for _, masonID := range masonIDs {
-		otherMasons := make([]string, 0)
-		for _, mid := range masonIDs {
-			if mid != masonID {
-				otherMasons = append(otherMasons, mid)
-			}
-		}
-
-		masonEvent, _ := core.NewPrivateEvent("mason_wakeup", "system", MasonWakeupPayload{
-			OtherMasons: otherMasons,
-		}, []string{masonID})
-		events = append(events, masonEvent)
-	}
-
-	// Start night phase
-	g.phase = PhaseNight
+	// Start role reveal phase (players need to acknowledge their roles)
+	g.phase = PhaseRoleReveal
 	g.phaseStartedAt = time.Now()
-	g.phaseEndsAt = g.phaseStartedAt.Add(g.config.NightDuration)
 
 	phaseEvent, _ := core.NewPublicEvent(core.EventPhaseChanged, "system", core.PhaseChangedPayload{
 		Phase: core.GamePhase{
-			Name:    string(PhaseNight),
-			EndsAt:  &g.phaseEndsAt,
-			Message: "Night phase - roles act in secret",
+			Name:    string(PhaseRoleReveal),
+			Message: "Look at your role card and acknowledge",
 		},
 	})
 	events = append(events, phaseEvent)
@@ -150,34 +123,47 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 
 // ValidateAction checks if a player can perform an action.
 func (g *Game) ValidateAction(playerID string, action core.Action) error {
-	role, exists := g.roleAssignments[playerID]
+	_, exists := g.roleAssignments[playerID]
 	if !exists {
 		return errors.New("player not in game")
 	}
 
 	switch action.Type {
+	case "acknowledge_role":
+		if g.phase != PhaseRoleReveal {
+			return errors.New("can only acknowledge role during role reveal phase")
+		}
+		if g.roleAcknowledgements[playerID] {
+			return errors.New("already acknowledged")
+		}
+		return nil
+
+	case "advance_phase":
+		// Only host can advance phases - we'll need to check this at room level
+		// For now, allow any player (room handler will check host status)
+		return nil
+
+	case "toggle_timer":
+		if g.phase != PhaseDay {
+			return errors.New("can only toggle timer during day phase")
+		}
+		return nil
+
+	case "extend_timer":
+		if g.phase != PhaseDay {
+			return errors.New("can only extend timer during day phase")
+		}
+		if !g.timerActive {
+			return errors.New("timer is not active")
+		}
+		return nil
+
 	case "vote":
 		if g.phase != PhaseDay {
 			return errors.New("can only vote during day phase")
 		}
-		if _, hasVoted := g.votes[playerID]; hasVoted {
-			return errors.New("already voted")
-		}
+		// Allow vote changes - don't check if already voted
 		return nil
-
-	case "seer_view":
-		if role != RoleSeer {
-			return errors.New("only seer can view roles")
-		}
-		if g.phase != PhaseNight {
-			return errors.New("can only view during night")
-		}
-		if g.nightActionsComplete[RoleSeer] {
-			return errors.New("seer has already acted")
-		}
-		return nil
-
-	// Add more action validations for other roles...
 
 	default:
 		return fmt.Errorf("unknown action type: %s", action.Type)
@@ -189,6 +175,74 @@ func (g *Game) ProcessAction(playerID string, action core.Action) ([]core.GameEv
 	events := make([]core.GameEvent, 0)
 
 	switch action.Type {
+	case "acknowledge_role":
+		g.roleAcknowledgements[playerID] = true
+
+		// Broadcast acknowledgement count
+		ackEvent, _ := core.NewPublicEvent("role_acknowledged", "system", RoleAcknowledgedPayload{
+			PlayerID: playerID,
+			Count:    len(g.roleAcknowledgements),
+			Total:    len(g.players),
+		})
+		events = append(events, ackEvent)
+
+		// Auto-advance to night when all players acknowledged
+		if len(g.roleAcknowledgements) == len(g.players) {
+			nightEvents, err := g.AdvanceToNight()
+			if err != nil {
+				return events, err
+			}
+			events = append(events, nightEvents...)
+		}
+
+	case "advance_phase":
+		// Advance from night to day (host only - checked at handler level)
+		if g.phase == PhaseNight {
+			dayEvents, err := g.AdvanceToDay()
+			if err != nil {
+				return nil, err
+			}
+			events = append(events, dayEvents...)
+		}
+
+	case "toggle_timer":
+		var timerPayload struct {
+			Enable   bool `json:"enable"`
+			Duration int  `json:"duration"` // seconds
+		}
+		if err := json.Unmarshal(action.Payload, &timerPayload); err != nil {
+			return nil, err
+		}
+
+		duration := time.Duration(timerPayload.Duration) * time.Second
+		if duration == 0 {
+			duration = 3 * time.Minute // Default 3 minutes
+		}
+
+		timerEvents, err := g.ToggleTimer(timerPayload.Enable, duration)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, timerEvents...)
+
+	case "extend_timer":
+		var extendPayload struct {
+			Seconds int `json:"seconds"`
+		}
+		if err := json.Unmarshal(action.Payload, &extendPayload); err != nil {
+			return nil, err
+		}
+
+		if extendPayload.Seconds == 0 {
+			extendPayload.Seconds = 60 // Default 1 minute
+		}
+
+		extendEvents, err := g.ExtendTimer(extendPayload.Seconds)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, extendEvents...)
+
 	case "vote":
 		var votePayload VotePayload
 		if err := json.Unmarshal(action.Payload, &votePayload); err != nil {
@@ -221,25 +275,6 @@ func (g *Game) ProcessAction(playerID string, action core.Action) ([]core.GameEv
 			g.phase = PhaseResults
 		}
 
-	case "seer_view":
-		var seerPayload SeerViewPayload
-		if err := json.Unmarshal(action.Payload, &seerPayload); err != nil {
-			return nil, err
-		}
-
-		targetRole := g.roleAssignments[seerPayload.TargetID]
-
-		// Send role to seer (private)
-		seerResultEvent, _ := core.NewPrivateEvent("seer_result", "system", SeerResultPayload{
-			TargetID: seerPayload.TargetID,
-			Role:     targetRole,
-		}, []string{playerID})
-		events = append(events, seerResultEvent)
-
-		g.nightActionsComplete[RoleSeer] = true
-
-	// Add more action implementations for other roles...
-
 	default:
 		return nil, fmt.Errorf("unknown action type: %s", action.Type)
 	}
@@ -252,33 +287,12 @@ func (g *Game) GetPlayerState(playerID string) core.PlayerState {
 	role := g.roleAssignments[playerID]
 
 	state := PlayerState{
-		Phase:       string(g.phase),
-		PhaseEndsAt: g.phaseEndsAt,
-		YourRole:    role,
-		HasVoted:    g.votes[playerID] != "",
-	}
-
-	// Add role-specific information
-	if g.phase == PhaseNight {
-		switch role {
-		case RoleWerewolf:
-			state.OtherWerewolves = g.getPlayersByRole(RoleWerewolf)
-			// Remove self
-			for i, id := range state.OtherWerewolves {
-				if id == playerID {
-					state.OtherWerewolves = append(state.OtherWerewolves[:i], state.OtherWerewolves[i+1:]...)
-					break
-				}
-			}
-		case RoleMason:
-			state.OtherMasons = g.getPlayersByRole(RoleMason)
-			for i, id := range state.OtherMasons {
-				if id == playerID {
-					state.OtherMasons = append(state.OtherMasons[:i], state.OtherMasons[i+1:]...)
-					break
-				}
-			}
-		}
+		Phase:           string(g.phase),
+		PhaseEndsAt:     g.phaseEndsAt,
+		YourRole:        role,
+		HasVoted:        g.votes[playerID] != "",
+		HasAcknowledged: g.roleAcknowledgements[playerID],
+		TimerActive:     g.timerActive,
 	}
 
 	return state
@@ -287,10 +301,12 @@ func (g *Game) GetPlayerState(playerID string) core.PlayerState {
 // GetPublicState returns the state visible to all players and spectators.
 func (g *Game) GetPublicState() core.PublicState {
 	return PublicState{
-		Phase:          string(g.phase),
-		PhaseEndsAt:    g.phaseEndsAt,
-		PlayerCount:    len(g.players),
-		VotesSubmitted: len(g.votes),
+		Phase:                 string(g.phase),
+		PhaseEndsAt:           g.phaseEndsAt,
+		PlayerCount:           len(g.players),
+		VotesSubmitted:        len(g.votes),
+		AcknowledgementsCount: len(g.roleAcknowledgements),
+		TimerActive:           g.timerActive,
 	}
 }
 
