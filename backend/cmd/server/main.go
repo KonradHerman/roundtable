@@ -57,6 +57,9 @@ func main() {
 	// Start cleanup goroutine
 	go cleanupRoutine(memStore)
 
+	// Start phase check routine for game timers
+	go phaseCheckRoutine(memStore, srv)
+
 	// Graceful shutdown
 	go func() {
 		log.Printf("Server starting on port %s", port)
@@ -109,6 +112,41 @@ func cleanupRoutine(store store.Store) {
 			log.Printf("Cleanup error: %v", err)
 		} else {
 			log.Println("Cleanup completed")
+		}
+	}
+}
+
+// phaseCheckRoutine periodically checks if game phases should advance
+func phaseCheckRoutine(store store.Store, srv *server.Server) {
+	ticker := time.NewTicker(1 * time.Second) // Check every second
+	defer ticker.Stop()
+
+	for range ticker.C {
+		rooms, err := store.ListRooms()
+		if err != nil {
+			continue
+		}
+
+		for _, room := range rooms {
+			// Only check rooms with active games
+			if room.Status != "playing" || room.Game == nil {
+				continue
+			}
+
+			// Check if phase should advance
+			events, err := room.Game.CheckPhaseTimeout()
+			if err != nil {
+				log.Printf("Phase check error for room %s: %v", room.ID, err)
+				continue
+			}
+
+			// If there are events, broadcast them
+			if len(events) > 0 {
+				room.AppendEvents(events)
+				for _, event := range events {
+					srv.ConnectionManager().BroadcastEvent(room.ID, event)
+				}
+			}
 		}
 	}
 }

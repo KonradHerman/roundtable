@@ -116,23 +116,33 @@
 	}
 
 	function generateDefaultRoles(playerCount: number): string[] {
-		// Simple role distribution for MVP
+		// One Night Werewolf requires playerCount + 3 roles (3 go to center)
 		if (playerCount < 3) return [];
+		
+		const totalRoles = playerCount + 3; // Always 3 center cards
+		const roles: string[] = [];
 
-		const roles = ['werewolf', 'werewolf']; // 2 werewolves
+		// Start with core roles based on player count
+		if (playerCount >= 3) {
+			roles.push('werewolf', 'werewolf'); // Always 2 werewolves
+			roles.push('seer'); // Always include seer
+		}
+		
+		// Add special roles as player count increases
+		if (playerCount >= 4) roles.push('robber');
+		if (playerCount >= 5) roles.push('troublemaker');
+		if (playerCount >= 6) roles.push('drunk');
+		if (playerCount >= 7) roles.push('mason', 'mason'); // Masons come in pairs
+		if (playerCount >= 8) roles.push('insomniac');
+		if (playerCount >= 9) roles.push('minion');
+		if (playerCount >= 10) roles.push('tanner'); // Chaos mode!
 
-		// Add special roles based on player count
-		if (playerCount >= 4) roles.push('seer');
-		if (playerCount >= 5) roles.push('robber');
-		if (playerCount >= 6) roles.push('troublemaker');
-		if (playerCount >= 7) roles.push('mason', 'mason');
-
-		// Fill remaining with villagers
-		while (roles.length < playerCount) {
+		// Fill remaining slots with villagers
+		while (roles.length < totalRoles) {
 			roles.push('villager');
 		}
 
-		return roles.slice(0, playerCount);
+		return roles;
 	}
 
 	async function copyRoomCode() {

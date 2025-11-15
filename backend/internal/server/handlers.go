@@ -29,6 +29,11 @@ func NewServer(store store.Store) *Server {
 	}
 }
 
+// ConnectionManager returns the connection manager (for phase checks).
+func (s *Server) ConnectionManager() *ConnectionManager {
+	return s.connMgr
+}
+
 // CreateRoomRequest is the payload for creating a room.
 type CreateRoomRequest struct {
 	GameType   string `json:"gameType"`
