@@ -7,3 +7,4 @@ cmds = ["go build -o server ./cmd/server"]
 
 [start]
 cmd = "./server"
+
