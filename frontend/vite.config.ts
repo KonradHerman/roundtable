@@ -7,7 +7,8 @@ export default defineConfig({
 		proxy: {
 			'/api': {
 				target: process.env.API_URL || 'http://localhost:8080',
-				changeOrigin: true
+				changeOrigin: true,
+				ws: true // Enable WebSocket proxying
 			}
 		}
 	}

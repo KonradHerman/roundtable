@@ -31,9 +31,23 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 	const maxReconnectAttempts = 5;
 	let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	const wsUrl = browser
-		? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/rooms/${roomCode}/ws`
-		: '';
+	// Construct WebSocket URL - use env var if available, otherwise relative to current host
+	const getWsUrl = () => {
+		if (!browser) return '';
+		
+		const apiBase = import.meta.env.VITE_API_URL;
+		if (apiBase) {
+			// Convert HTTP(S) URL to WS(S)
+			const wsBase = apiBase.replace(/^http/, 'ws');
+			return `${wsBase}/rooms/${roomCode}/ws`;
+		}
+		
+		// Fallback to relative URL (works with Vite proxy in dev)
+		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+		return `${protocol}//${window.location.host}/api/rooms/${roomCode}/ws`;
+	};
+	
+	const wsUrl = getWsUrl();
 
 	function connect() {
 		if (!browser || !wsUrl) return;
