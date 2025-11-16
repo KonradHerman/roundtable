@@ -1,11 +1,45 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { api, type JoinRoomRequest } from '$lib/api/client';
+	import { session } from '$lib/stores/session';
 
 	let joinCode = '';
+	let displayName = '';
+	let loading = false;
+	let error = '';
 
-	function handleJoin() {
-		if (joinCode.trim()) {
-			goto(`/join?code=${joinCode.toUpperCase()}`);
+	async function handleJoin() {
+		if (!joinCode.trim() || !displayName.trim()) {
+			return;
+		}
+
+		loading = true;
+		error = '';
+
+		try {
+			const request: JoinRoomRequest = {
+				displayName: displayName.trim()
+			};
+
+			const response = await api.joinRoom(joinCode.toUpperCase(), request);
+
+			// Save session
+			session.set({
+				playerId: response.playerId,
+				sessionToken: response.sessionToken,
+				roomCode: response.roomCode,
+				displayName: displayName.trim()
+			});
+
+			// Redirect to room
+			goto(`/room/${response.roomCode}`);
+		} catch (err: any) {
+			if (err.status === 404) {
+				error = 'Room not found';
+			} else {
+				error = err.message || 'Failed to join room';
+			}
+			loading = false;
 		}
 	}
 </script>
@@ -47,10 +81,30 @@
 					maxlength="6"
 					autocomplete="off"
 					autocapitalize="characters"
+					disabled={loading}
 				/>
-				<button type="submit" class="btn btn-secondary w-full" disabled={!joinCode.trim()}>
-					Join Game
-				</button>
+				
+				{#if joinCode.trim()}
+					<input
+						type="text"
+						bind:value={displayName}
+						placeholder="Enter your name"
+						class="input"
+						maxlength="20"
+						autocomplete="off"
+						disabled={loading}
+					/>
+					
+					{#if error}
+						<div class="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+							<p class="text-sm text-destructive">{error}</p>
+						</div>
+					{/if}
+					
+					<button type="submit" class="btn btn-secondary w-full" disabled={loading || !displayName.trim()}>
+						{loading ? 'Joining...' : 'Join Game'}
+					</button>
+				{/if}
 			</form>
 		</div>
 

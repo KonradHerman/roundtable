@@ -69,11 +69,13 @@
 	}
 
 	.input {
-		@apply w-full px-4 py-4 text-lg rounded-xl border-2 border-input focus:border-primary focus:outline-none text-foreground;
+		@apply w-full px-4 py-4 text-lg rounded-xl border-2 border-input focus:border-primary focus:outline-none;
 		min-height: 48px;
+		background-color: #fbf1c7;
+		color: #1a1a1a;
 	}
 	
 	input::placeholder {
-		@apply text-muted-foreground;
+		color: #888888;
 	}
 }
