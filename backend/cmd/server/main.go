@@ -27,6 +27,7 @@ func main() {
 	mux.HandleFunc("GET /api/rooms/{code}", srv.HandleGetRoom)
 	mux.HandleFunc("POST /api/rooms/{code}/join", srv.HandleJoinRoom)
 	mux.HandleFunc("POST /api/rooms/{code}/start", srv.HandleStartGame)
+	mux.HandleFunc("POST /api/rooms/{code}/reset", srv.HandleResetGame)
 
 	// WebSocket route
 	mux.HandleFunc("GET /api/rooms/{code}/ws", srv.HandleWebSocket)

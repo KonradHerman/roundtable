@@ -117,7 +117,7 @@
 			{phaseEndsAt}
 		/>
 	{:else if currentPhase === 'results'}
-		<Results />
+		<Results {roomState} {wsStore} />
 	{:else}
 		<Card class="p-6">
 			<p class="text-center text-muted-foreground">Preparing game...</p>

@@ -205,9 +205,35 @@ func (r *Room) StartGame(game Game, config GameConfig) error {
 		return err
 	}
 
+	// If the game supports host tracking, set the host
+	type HostSetter interface {
+		SetHost(hostID string)
+	}
+	if hs, ok := game.(HostSetter); ok {
+		hs.SetHost(r.HostID)
+	}
+
 	r.Game = game
 	r.Status = RoomStatusPlaying
 	r.EventLog = append(r.EventLog, events...)
+
+	return nil
+}
+
+// ResetGame resets the room back to waiting status for a new game.
+// Keeps players but clears game state and event log.
+func (r *Room) ResetGame() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.Status == RoomStatusWaiting {
+		return errors.New("no game to reset")
+	}
+
+	// Clear game state
+	r.Game = nil
+	r.EventLog = make([]GameEvent, 0)
+	r.Status = RoomStatusWaiting
 
 	return nil
 }

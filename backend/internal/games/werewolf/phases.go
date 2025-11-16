@@ -24,31 +24,7 @@ func (g *Game) AdvanceToNight() ([]core.GameEvent, error) {
 
 	events := make([]core.GameEvent, 0)
 
-	// Generate night script for the host
-	allRoles := make([]RoleType, 0, len(g.roleAssignments)+len(g.centerCards))
-	for _, role := range g.roleAssignments {
-		allRoles = append(allRoles, role)
-	}
-	for _, role := range g.centerCards {
-		allRoles = append(allRoles, role)
-	}
-	
-	script := GenerateNightScript(allRoles)
-
-	// Send script to host only
-	hostID := ""
-	for _, player := range g.players {
-		// Find host - we'll need to track this, for now just use first player
-		// In reality, the room knows who the host is
-		hostID = player.ID
-		break
-	}
-
-	scriptEvent, _ := core.NewPrivateEvent("night_script", "system", NightScriptPayload{
-		Script: script,
-	}, []string{hostID})
-	events = append(events, scriptEvent)
-
+	// Phase change event (public)
 	phaseEvent, _ := core.NewPublicEvent(core.EventPhaseChanged, "system", core.PhaseChangedPayload{
 		Phase: core.GamePhase{
 			Name:    string(PhaseNight),
@@ -56,6 +32,59 @@ func (g *Game) AdvanceToNight() ([]core.GameEvent, error) {
 		},
 	})
 	events = append(events, phaseEvent)
+
+	// Send role-specific wakeup events
+
+	// 1. Werewolves wake up and see each other
+	werewolves := g.getPlayersByRole(RoleWerewolf)
+	if len(werewolves) > 0 {
+		for _, ww := range werewolves {
+			otherWerewolves := make([]string, 0)
+			for _, other := range werewolves {
+				if other != ww {
+					otherWerewolves = append(otherWerewolves, other)
+				}
+			}
+			wakeupEvent, _ := core.NewPrivateEvent("werewolf_wakeup", "system", WerewolfWakeupPayload{
+				OtherWerewolves: otherWerewolves,
+			}, []string{ww})
+			events = append(events, wakeupEvent)
+		}
+	}
+
+	// 2. Masons wake up and see each other
+	masons := g.getPlayersByRole(RoleMason)
+	if len(masons) > 0 {
+		for _, mason := range masons {
+			otherMasons := make([]string, 0)
+			for _, other := range masons {
+				if other != mason {
+					otherMasons = append(otherMasons, other)
+				}
+			}
+			wakeupEvent, _ := core.NewPrivateEvent("mason_wakeup", "system", MasonWakeupPayload{
+				OtherMasons: otherMasons,
+			}, []string{mason})
+			events = append(events, wakeupEvent)
+		}
+	}
+
+	// Generate night script for the host
+	allRoles := make([]RoleType, 0, len(g.roleAssignments)+len(g.centerCards))
+	for _, role := range g.roleAssignments {
+		allRoles = append(allRoles, role)
+	}
+	allRoles = append(allRoles, g.centerCards...)
+	
+	script := GenerateNightScript(allRoles)
+
+	// Send script to host only
+	if g.hostID != "" {
+		scriptEvent, _ := core.NewPrivateEvent("night_script", "system", NightScriptPayload{
+			Script: script,
+		}, []string{g.hostID})
+		events = append(events, scriptEvent)
+	}
 
 	return events, nil
 }
@@ -66,11 +95,23 @@ func (g *Game) AdvanceToDay() ([]core.GameEvent, error) {
 		return nil, errors.New("can only advance to day from night phase")
 	}
 
+	events := make([]core.GameEvent, 0)
+
+	// Insomniac wakes up and sees their final role (after all swaps)
+	for playerID, role := range g.roleAssignments {
+		if g.originalRoles[playerID] == RoleInsomniac {
+			// Send the Insomniac their final role
+			insomniacEvent, _ := core.NewPrivateEvent("insomniac_result", "system", InsomniacResultPayload{
+				FinalRole: role,
+			}, []string{playerID})
+			events = append(events, insomniacEvent)
+			g.nightActionsComplete[RoleInsomniac] = true
+		}
+	}
+
 	g.phase = PhaseDay
 	g.phaseStartedAt = time.Now()
 	g.timerActive = false // Timer starts OFF
-
-	events := make([]core.GameEvent, 0)
 
 	phaseEvent, _ := core.NewPublicEvent(core.EventPhaseChanged, "system", core.PhaseChangedPayload{
 		Phase: core.GamePhase{

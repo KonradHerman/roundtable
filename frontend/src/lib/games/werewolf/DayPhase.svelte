@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { gameStore } from '$lib/stores/game';
 	import { session } from '$lib/stores/session';
-	import { Card, Button, Badge } from '$lib/components/ui';
-	import { Vote, CheckCircle2, Clock, Play, Pause, Plus } from 'lucide-svelte';
+	import { Card, Button } from '$lib/components/ui';
+	import { Users, Clock, Play, Pause, Plus } from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
 
 	export let roomState: any;
@@ -10,25 +9,10 @@
 	export let timerActive: boolean = false;
 	export let phaseEndsAt: Date | null = null;
 
-	let selectedPlayer: string | null = null;
-	let hasVoted = false;
-	let votes: Record<string, string> = {};
-	let votesRevealed = false;
 	let timeRemaining: number = 0;
 	let timerInterval: any = null;
 
-	// Subscribe to vote events
-	let unsubscribe = gameStore.subscribe(($game) => {
-		$game.events.forEach(event => {
-			if (event.type === 'vote_cast') {
-				// Track that someone voted (but not who they voted for yet)
-				hasVoted = hasVoted || event.actorId === $session?.playerId;
-			} else if (event.type === 'votes_revealed') {
-				votes = event.payload.votes || {};
-				votesRevealed = true;
-			}
-		});
-	});
+	// No voting events to track - voting is physical!
 
 	onMount(() => {
 		timerInterval = setInterval(() => {
@@ -44,21 +28,7 @@
 
 	onDestroy(() => {
 		if (timerInterval) clearInterval(timerInterval);
-		if (unsubscribe) unsubscribe();
 	});
-
-	function handleVote() {
-		if (!selectedPlayer || !wsStore) return;
-
-		wsStore.sendAction({
-			type: 'vote',
-			payload: {
-				targetId: selectedPlayer
-			}
-		});
-
-		hasVoted = true;
-	}
 
 	function handleToggleTimer() {
 		if (!wsStore) return;
@@ -89,17 +59,17 @@
 		return `${mins}:${secs.toString().padStart(2, '0')}`;
 	}
 
-	function getVoteCount(playerId: string): number {
-		return Object.values(votes).filter(v => v === playerId).length;
+	function handleRevealRoles() {
+		if (!wsStore) return;
+		
+		// Advance to results phase to show all roles
+		wsStore.sendAction({
+			type: 'advance_to_results',
+			payload: {}
+		});
 	}
 
-	function didVoteFor(playerId: string): boolean {
-		return votes[$session?.playerId || ''] === playerId;
-	}
-
-	$: players = roomState?.players || [];
 	$: isHost = $session?.playerId === roomState?.hostId;
-	$: votesSubmitted = Object.keys(votes).length;
 </script>
 
 <div class="space-y-6">
@@ -154,114 +124,60 @@
 	<!-- Instructions -->
 	<Card class="p-6 bg-gruvbox-yellow/20 border-gruvbox-yellow">
 		<div class="flex items-start gap-3">
-			<Vote class="w-6 h-6 text-gruvbox-yellow-light flex-shrink-0 mt-1" />
+			<Users class="w-6 h-6 text-gruvbox-yellow-light flex-shrink-0 mt-1" />
 			<div>
-				<h3 class="font-semibold text-lg mb-1">Discussion & Voting</h3>
+				<h3 class="font-semibold text-lg mb-1">Discussion Time</h3>
 				<p class="text-sm text-muted-foreground">
-					Discuss with your group who you think is a werewolf, then vote to eliminate someone.
+					Discuss with your group who you think is a werewolf. Share what you learned during the night phase (or bluff!).
 				</p>
 			</div>
 		</div>
 	</Card>
 
-	<!-- Voting interface -->
-	{#if !votesRevealed}
-		<Card class="p-6">
-			<div class="flex items-center justify-between mb-4">
-				<h3 class="font-semibold text-lg">
-					{hasVoted ? 'Your vote has been cast' : 'Vote to eliminate'}
-				</h3>
-				<Badge variant="outline">
-					{votesSubmitted} / {players.length} voted
-				</Badge>
+	<!-- Discussion guide -->
+	<Card class="p-6">
+		<h3 class="font-semibold text-lg mb-4">Discussion Guide</h3>
+		
+		<div class="space-y-3 text-sm">
+			<div class="flex items-start gap-2">
+				<span class="text-lg">1️⃣</span>
+				<p><strong>Share information:</strong> What role did you start as? What did you see or do?</p>
 			</div>
-
-			{#if hasVoted}
-				<div class="flex items-center gap-3 p-4 bg-gruvbox-green/20 border border-gruvbox-green rounded-lg mb-4">
-					<CheckCircle2 class="w-6 h-6 text-gruvbox-green-light" />
-					<div>
-						<p class="font-medium">Vote submitted</p>
-						<p class="text-sm text-muted-foreground">You can change your vote before everyone submits</p>
-					</div>
-				</div>
-			{/if}
-
-			<div class="space-y-3 mb-4">
-				{#each players as player}
-					<button
-						on:click={() => selectedPlayer = player.id}
-						class="w-full p-4 text-left rounded-lg border-2 transition-all {selectedPlayer === player.id ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}"
-					>
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-3">
-								<div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-									{player.displayName[0].toUpperCase()}
-								</div>
-								<span class="font-medium">{player.displayName}</span>
-							</div>
-							{#if selectedPlayer === player.id}
-								<Badge class="bg-primary">Selected</Badge>
-							{/if}
-						</div>
-					</button>
-				{/each}
+			
+			<div class="flex items-start gap-2">
+				<span class="text-lg">2️⃣</span>
+				<p><strong>Look for inconsistencies:</strong> Are people's stories adding up?</p>
 			</div>
+			
+			<div class="flex items-start gap-2">
+				<span class="text-lg">3️⃣</span>
+				<p><strong>Deduce final roles:</strong> Based on night actions, who has what role now?</p>
+			</div>
+			
+			<div class="flex items-start gap-2">
+				<span class="text-lg">4️⃣</span>
+				<p><strong>Vote when ready:</strong> Everyone point at who to eliminate simultaneously!</p>
+			</div>
+		</div>
 
-			<Button
-				variant="destructive"
-				class="w-full h-12"
-				disabled={!selectedPlayer}
-				on:click={handleVote}
-			>
-				{hasVoted ? 'Change Vote' : 'Submit Vote'}
-			</Button>
-
-			<!-- Vote status -->
-			<div class="mt-4 p-3 bg-muted rounded-lg">
+		{#if isHost}
+			<div class="mt-6 pt-6 border-t border-border">
+				<p class="text-sm text-muted-foreground mb-3">
+					When discussion is done and everyone has voted physically:
+				</p>
+				<Button
+					on:click={handleRevealRoles}
+					class="w-full h-12 bg-primary hover:bg-primary/90"
+				>
+					Reveal All Roles →
+				</Button>
+			</div>
+		{:else}
+			<div class="mt-6 pt-6 border-t border-border">
 				<p class="text-sm text-center text-muted-foreground">
-					{#if hasVoted}
-						Waiting for other players to vote... ({votesSubmitted}/{players.length})
-					{:else}
-						Select a player to eliminate
-					{/if}
+					Waiting for the host to reveal roles...
 				</p>
 			</div>
-		</Card>
-	{:else}
-		<!-- Votes revealed -->
-		<Card class="p-6">
-			<h3 class="font-semibold text-lg mb-4">Votes Revealed</h3>
-
-			<div class="space-y-2">
-				{#each players as player}
-					{@const voteCount = getVoteCount(player.id)}
-					{@const votedByMe = didVoteFor(player.id)}
-					<div class="p-4 rounded-lg border {voteCount > 0 ? 'border-destructive bg-destructive/5' : 'border-border'}">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-3">
-								<div class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-									{player.displayName[0].toUpperCase()}
-								</div>
-								<div>
-									<span class="font-medium">{player.displayName}</span>
-									{#if votedByMe}
-										<span class="text-xs text-muted-foreground ml-2">(You voted for this player)</span>
-									{/if}
-								</div>
-							</div>
-							<Badge variant={voteCount > 0 ? 'destructive' : 'outline'}>
-								{voteCount} {voteCount === 1 ? 'vote' : 'votes'}
-							</Badge>
-						</div>
-					</div>
-				{/each}
-			</div>
-
-			<div class="mt-6 p-4 bg-muted rounded-lg">
-				<p class="text-sm text-center text-muted-foreground">
-					Calculating results...
-				</p>
-			</div>
-		</Card>
-	{/if}
+		{/if}
+	</Card>
 </div>
