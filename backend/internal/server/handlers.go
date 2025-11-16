@@ -15,16 +15,16 @@ import (
 
 // Server holds the HTTP server and its dependencies.
 type Server struct {
-	store      store.Store
-	connMgr    *ConnectionManager
+	store        store.Store
+	connMgr      *ConnectionManager
 	gameRegistry *games.Registry
 }
 
 // NewServer creates a new server instance.
 func NewServer(store store.Store) *Server {
 	return &Server{
-		store:      store,
-		connMgr:    NewConnectionManager(store),
+		store:        store,
+		connMgr:      NewConnectionManager(store),
 		gameRegistry: games.NewRegistry(),
 	}
 }
@@ -36,9 +36,9 @@ func (s *Server) ConnectionManager() *ConnectionManager {
 
 // CreateRoomRequest is the payload for creating a room.
 type CreateRoomRequest struct {
-	GameType   string `json:"gameType"`
+	GameType    string `json:"gameType"`
 	DisplayName string `json:"displayName"` // Host's display name
-	MaxPlayers int    `json:"maxPlayers,omitempty"`
+	MaxPlayers  int    `json:"maxPlayers,omitempty"`
 }
 
 // CreateRoomResponse is the response for creating a room.

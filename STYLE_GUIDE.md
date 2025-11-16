@@ -40,7 +40,7 @@ This project uses the Gruvbox Dark color scheme with specific accent colors.
 
 ### Standard Input
 ```css
-Background: #fbf1c7 (Gruvbox light cream/papery)
+Background: #f9f5d7 (Light cream - less yellow than standard Gruvbox)
 Text Color: #1a1a1a (nearly black for high contrast)
 Placeholder: #888888 (medium gray)
 Border: #504945 (muted)
@@ -62,8 +62,8 @@ Focus Border: #d79921 (primary)
 - **Muted text**: `#928374` with reduced opacity
 
 ### Text on Light Backgrounds (Inputs)
-- **Input text**: `#1a1a1a` on `#fbf1c7`
-- **Placeholder**: `#888888` on `#fbf1c7`
+- **Input text**: `#1a1a1a` on `#f9f5d7`
+- **Placeholder**: `#888888` on `#f9f5d7`
 
 ### Buttons
 
@@ -165,6 +165,6 @@ All combinations meet WCAG AAA standards for normal text.
 - **Secondary (`#458588`)**: Secondary actions, "Join Game" button
 - **Muted (`#928374`)**: Labels, secondary text, disabled states
 - **Destructive (`#cc241d`)**: Errors, delete actions, warnings
-- **Input background (`#fbf1c7`)**: All text input fields
+- **Input background (`#f9f5d7`)**: All text input fields
 - **Input text (`#1a1a1a`)**: Text inside input fields (must be dark for contrast)
 

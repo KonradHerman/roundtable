@@ -4,22 +4,22 @@ import "time"
 
 // PlayerState is the werewolf-specific state for a single player.
 type PlayerState struct {
-	Phase              string    `json:"phase"`
-	PhaseEndsAt        time.Time `json:"phaseEndsAt"`
-	YourRole           RoleType  `json:"yourRole"`
-	HasVoted           bool      `json:"hasVoted"`
-	HasAcknowledged    bool      `json:"hasAcknowledged"`
-	TimerActive        bool      `json:"timerActive"`
+	Phase           string    `json:"phase"`
+	PhaseEndsAt     time.Time `json:"phaseEndsAt"`
+	YourRole        RoleType  `json:"yourRole"`
+	HasVoted        bool      `json:"hasVoted"`
+	HasAcknowledged bool      `json:"hasAcknowledged"`
+	TimerActive     bool      `json:"timerActive"`
 }
 
 // PublicState is the werewolf-specific public state.
 type PublicState struct {
-	Phase               string    `json:"phase"`
-	PhaseEndsAt         time.Time `json:"phaseEndsAt"`
-	PlayerCount         int       `json:"playerCount"`
-	VotesSubmitted      int       `json:"votesSubmitted"`
-	AcknowledgementsCount int     `json:"acknowledgementsCount"`
-	TimerActive         bool      `json:"timerActive"`
+	Phase                 string    `json:"phase"`
+	PhaseEndsAt           time.Time `json:"phaseEndsAt"`
+	PlayerCount           int       `json:"playerCount"`
+	VotesSubmitted        int       `json:"votesSubmitted"`
+	AcknowledgementsCount int       `json:"acknowledgementsCount"`
+	TimerActive           bool      `json:"timerActive"`
 }
 
 // Event payloads
@@ -126,4 +126,8 @@ type DrunkSwapPayload struct {
 
 type InsomniacResultPayload struct {
 	FinalRole RoleType `json:"finalRole"`
+}
+
+type RolesRevealedPayload struct {
+	Roles map[string]RoleType `json:"roles"`
 }

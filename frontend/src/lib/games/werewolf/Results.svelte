@@ -6,7 +6,6 @@
 	import { confetti } from '@neoconfetti/svelte';
 
 	export let roomState: any;
-	export let wsStore: any = null;
 	
 	import { api } from '$lib/api/client';
 	
@@ -18,32 +17,14 @@
 	let showConfetti = false;
 	let hasGameFinished = false;
 
-	// Subscribe to game finished event and role assignments
+	// Subscribe to game events
 	let unsubscribe = gameStore.subscribe(($game) => {
-		// Collect all role assignments from events
-		const roleMap: Record<string, string> = {};
-		let originalRoles: Record<string, string> = {};
-		
 		$game.events.forEach(event => {
-			if (event.type === 'role_assigned') {
-				// This is the original role
-				originalRoles[event.targetPlayers?.[0] || ''] = event.payload.role;
-			} else if (event.type === 'robber_result') {
-				// Robber got a new role
-				const playerId = event.targetPlayers?.[0];
-				if (playerId) {
-					roleMap[playerId] = event.payload.newRole;
-				}
-			} else if (event.type === 'drunk_confirmed') {
-				// Drunk swapped but doesn't know what they got
-				// We'll show "unknown" or their original role for now
-			} else if (event.type === 'insomniac_result') {
-				// Insomniac sees their final role
-				const playerId = event.targetPlayers?.[0];
-				if (playerId) {
-					roleMap[playerId] = event.payload.finalRole;
-				}
+			if (event.type === 'roles_revealed') {
+				// Roles revealed for display (before voting/game finished)
+				allRoles = event.payload.roles || {};
 			} else if (event.type === 'game_finished') {
+				// Game finished with winners determined
 				hasGameFinished = true;
 				gameResults = event.payload.results;
 				winners = gameResults.winners || [];
@@ -58,11 +39,6 @@
 				}
 			}
 		});
-		
-		// If game hasn't finished yet, use collected roles
-		if (!hasGameFinished && Object.keys(originalRoles).length > 0) {
-			allRoles = { ...originalRoles, ...roleMap };
-		}
 	});
 
 	function getRoleBadgeVariant(role: string): 'default' | 'destructive' | 'secondary' {
@@ -114,7 +90,6 @@
 		<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
 			<div use:confetti={{
 				particleCount: 100,
-				spread: 70,
 				colors: ['#d79921', '#b8bb26', '#83a598', '#d3869b']
 			}}></div>
 		</div>

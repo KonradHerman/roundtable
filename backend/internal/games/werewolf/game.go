@@ -313,6 +313,12 @@ func (g *Game) ProcessAction(playerID string, action core.Action) ([]core.GameEv
 		})
 		events = append(events, phaseEvent)
 
+		// Send current role assignments to all players
+		rolesEvent, _ := core.NewPublicEvent("roles_revealed", "system", RolesRevealedPayload{
+			Roles: g.roleAssignments,
+		})
+		events = append(events, rolesEvent)
+
 	case "toggle_timer":
 		var timerPayload struct {
 			Enable   bool `json:"enable"`
