@@ -161,7 +161,7 @@
 </script>
 
 <svelte:head>
-	<title>Room {roomCode} - Roundtable</title>
+	<title>Room {roomCode} - Cardless</title>
 </svelte:head>
 
 <div class="min-h-screen bg-background">
@@ -208,7 +208,7 @@
 							{#if copied}
 								<Check class="w-6 h-6 text-primary" />
 							{:else}
-								<Copy class="w-6 h-6 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+								<Copy class="w-6 h-6 text-primary md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
 							{/if}
 						</button>
 						<p class="text-sm text-muted-foreground mt-3">

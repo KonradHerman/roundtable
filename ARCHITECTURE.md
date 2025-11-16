@@ -1,4 +1,4 @@
-# Roundtable: Party Game Platform Architecture
+# Cardless: Party Game Platform Architecture
 
 ## Vision
 Replace physical cards/boards with phones + optional shared screen for in-person multiplayer party games.

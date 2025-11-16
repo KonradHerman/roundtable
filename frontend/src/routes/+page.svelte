@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>Roundtable - Party Games</title>
+	<title>Cardless - Party Games</title>
 </svelte:head>
 
 <div class="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
@@ -19,7 +19,7 @@
 		<!-- Logo/Title -->
 		<div class="text-center">
 			<h1 class="text-6xl font-bold mb-2">🎲</h1>
-			<h1 class="text-5xl font-bold text-primary mb-2">Roundtable</h1>
+			<h1 class="text-5xl font-bold text-primary mb-2">Cardless</h1>
 			<p class="text-foreground/80 text-lg">Party games for friends</p>
 		</div>
 

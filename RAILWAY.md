@@ -1,10 +1,10 @@
 # Railway Deployment Guide
 
-This guide explains how to deploy Roundtable to Railway.
+This guide explains how to deploy Cardless to Railway.
 
 ## Architecture
 
-Roundtable requires **two separate services** on Railway:
+Cardless requires **two separate services** on Railway:
 
 1. **Backend Service** (Go) - API server and WebSocket handler
 2. **Frontend Service** (Node.js) - SvelteKit application
@@ -32,7 +32,7 @@ Roundtable requires **two separate services** on Railway:
 
 ```bash
 # Use Railway's internal networking for best performance
-VITE_API_URL=http://roundtable.railway.internal:8080/api
+VITE_API_URL=http://cardless.railway.internal:8080/api
 
 # Alternative: Use the backend's public URL
 # VITE_API_URL=https://your-backend-service.up.railway.app/api
@@ -43,7 +43,7 @@ VITE_API_URL=http://roundtable.railway.internal:8080/api
 ### 3. Configure Networking
 
 **Option A: Internal Networking (Recommended)**
-- Use Railway's internal network: `http://roundtable.railway.internal:8080`
+- Use Railway's internal network: `http://cardless.railway.internal:8080`
 - Faster and doesn't use public bandwidth
 - Set in frontend's `VITE_API_URL`
 
@@ -74,12 +74,12 @@ VITE_API_URL=http://roundtable.railway.internal:8080/api
 
 **Bad:**
 ```bash
-VITE_API_URL=roundtable.railway.internal:8080/api  ❌
+VITE_API_URL=cardless.railway.internal:8080/api  ❌
 ```
 
 **Good:**
 ```bash
-VITE_API_URL=http://roundtable.railway.internal:8080/api  ✅
+VITE_API_URL=http://cardless.railway.internal:8080/api  ✅
 ```
 
 **Note:** The code now automatically adds `http://` if missing, but it's better to set it correctly.
@@ -120,8 +120,8 @@ Railway provides private networking between services in the same project:
 
 **Example:**
 ```bash
-# If your backend service is named "roundtable" or detected as "backend"
-VITE_API_URL=http://roundtable.railway.internal:8080/api
+# If your backend service is named "cardless" or detected as "backend"
+VITE_API_URL=http://cardless.railway.internal:8080/api
 ```
 
 **How to find your internal URL:**
@@ -179,13 +179,13 @@ Listening on 0.0.0.0:3000
 
 Should see:
 ```
-API Request: POST http://roundtable.railway.internal:8080/api/rooms
+API Request: POST http://cardless.railway.internal:8080/api/rooms
 ```
 
 Should NOT see:
 - CORS errors
 - Connection refused
-- "roundtable.railway.internal:8080" (without http://)
+- "cardless.railway.internal:8080" (without http://)
 
 ## Performance Tips
 

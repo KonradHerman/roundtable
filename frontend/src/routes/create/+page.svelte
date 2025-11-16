@@ -53,7 +53,7 @@
 </script>
 
 <svelte:head>
-	<title>Create Room - Roundtable</title>
+	<title>Create Room - Cardless</title>
 </svelte:head>
 
 <div class="min-h-screen p-6 bg-background">

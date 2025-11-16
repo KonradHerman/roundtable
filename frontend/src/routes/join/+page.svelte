@@ -63,7 +63,7 @@
 </script>
 
 <svelte:head>
-	<title>Join Room - Roundtable</title>
+	<title>Join Room - Cardless</title>
 </svelte:head>
 
 <div class="min-h-screen p-6 bg-background">

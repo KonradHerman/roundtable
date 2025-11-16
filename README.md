@@ -1,4 +1,4 @@
-# 🎲 Roundtable
+# 🎲 Cardless
 
 **A multiplayer party game platform that replaces physical cards and boards with phones + optional shared screens.**
 
