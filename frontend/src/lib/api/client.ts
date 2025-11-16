@@ -10,8 +10,14 @@ function normalizeApiUrl(url: string): string {
 	// If it already has a protocol, use it as-is
 	if (url.startsWith('http://') || url.startsWith('https://')) return url;
 
-	// If it's missing a protocol, add http:// (Railway internal URLs use http)
-	return `http://${url}`;
+	// If it's missing a protocol, detect based on current page protocol
+	// In production (HTTPS), use HTTPS for backend too to avoid mixed content errors
+	// In development (HTTP), use HTTP
+	const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:'
+		? 'https://'
+		: 'http://';
+
+	return `${protocol}${url}`;
 }
 
 const API_BASE = normalizeApiUrl(import.meta.env.VITE_API_URL || '/api');
