@@ -29,6 +29,7 @@
 
 	html {
 		-webkit-tap-highlight-color: transparent;
+		@apply bg-background;
 	}
 
 	body {
