@@ -1,6 +1,20 @@
 // API client for backend communication
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Normalize API URL - ensure it has a protocol if it's an absolute URL
+function normalizeApiUrl(url: string): string {
+	if (!url) return '/api';
+
+	// If it's a relative URL (starts with /), use it as-is
+	if (url.startsWith('/')) return url;
+
+	// If it already has a protocol, use it as-is
+	if (url.startsWith('http://') || url.startsWith('https://')) return url;
+
+	// If it's missing a protocol, add http:// (Railway internal URLs use http)
+	return `http://${url}`;
+}
+
+const API_BASE = normalizeApiUrl(import.meta.env.VITE_API_URL || '/api');
 
 export interface CreateRoomRequest {
 	gameType: string;
