@@ -4,22 +4,22 @@ import "time"
 
 // PlayerState is the werewolf-specific state for a single player.
 type PlayerState struct {
-	Phase              string    `json:"phase"`
-	PhaseEndsAt        time.Time `json:"phaseEndsAt"`
-	YourRole           RoleType  `json:"yourRole"`
-	HasVoted           bool      `json:"hasVoted"`
-	HasAcknowledged    bool      `json:"hasAcknowledged"`
-	TimerActive        bool      `json:"timerActive"`
+	Phase           string    `json:"phase"`
+	PhaseEndsAt     time.Time `json:"phaseEndsAt"`
+	YourRole        RoleType  `json:"yourRole"`
+	HasVoted        bool      `json:"hasVoted"`
+	HasAcknowledged bool      `json:"hasAcknowledged"`
+	TimerActive     bool      `json:"timerActive"`
 }
 
 // PublicState is the werewolf-specific public state.
 type PublicState struct {
-	Phase               string    `json:"phase"`
-	PhaseEndsAt         time.Time `json:"phaseEndsAt"`
-	PlayerCount         int       `json:"playerCount"`
-	VotesSubmitted      int       `json:"votesSubmitted"`
-	AcknowledgementsCount int     `json:"acknowledgementsCount"`
-	TimerActive         bool      `json:"timerActive"`
+	Phase                 string    `json:"phase"`
+	PhaseEndsAt           time.Time `json:"phaseEndsAt"`
+	PlayerCount           int       `json:"playerCount"`
+	VotesSubmitted        int       `json:"votesSubmitted"`
+	AcknowledgementsCount int       `json:"acknowledgementsCount"`
+	TimerActive           bool      `json:"timerActive"`
 }
 
 // Event payloads
@@ -91,4 +91,43 @@ type TimerToggledPayload struct {
 type TimerExtendedPayload struct {
 	PhaseEndsAt time.Time `json:"phaseEndsAt"`
 	ExtendedBy  int       `json:"extendedBy"` // seconds
+}
+
+// Night action payloads
+
+type WerewolfViewCenterPayload struct {
+	CenterIndex int `json:"centerIndex"` // 0, 1, or 2
+}
+
+type WerewolfViewCenterResultPayload struct {
+	CenterIndex int      `json:"centerIndex"`
+	Role        RoleType `json:"role"`
+}
+
+type SeerViewCenterPayload struct {
+	CenterIndices []int `json:"centerIndices"` // Must be exactly 2
+}
+
+type SeerViewCenterResultPayload struct {
+	Cards []struct {
+		Index int      `json:"index"`
+		Role  RoleType `json:"role"`
+	} `json:"cards"`
+}
+
+type TroublemakerSwapPayload struct {
+	Player1ID string `json:"player1Id"`
+	Player2ID string `json:"player2Id"`
+}
+
+type DrunkSwapPayload struct {
+	CenterIndex int `json:"centerIndex"` // 0, 1, or 2
+}
+
+type InsomniacResultPayload struct {
+	FinalRole RoleType `json:"finalRole"`
+}
+
+type RolesRevealedPayload struct {
+	Roles map[string]RoleType `json:"roles"`
 }

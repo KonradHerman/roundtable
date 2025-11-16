@@ -24,6 +24,7 @@ const (
 // Game implements the core.Game interface for One Night Werewolf.
 type Game struct {
 	config               *Config
+	hostID               string                  // PlayerID of the host
 	players              map[string]*core.Player // playerID → player
 	roleAssignments      map[string]RoleType     // playerID → role
 	originalRoles        map[string]RoleType     // playerID → original role (before night actions)
@@ -50,6 +51,11 @@ func NewGame() core.Game {
 		phase:                PhaseSetup,
 		timerActive:          false,
 	}
+}
+
+// SetHost sets the host player ID (called by room after initialization).
+func (g *Game) SetHost(hostID string) {
+	g.hostID = hostID
 }
 
 // Initialize sets up the game with players and config.
@@ -143,6 +149,12 @@ func (g *Game) ValidateAction(playerID string, action core.Action) error {
 		// For now, allow any player (room handler will check host status)
 		return nil
 
+	case "advance_to_results":
+		if g.phase != PhaseDay {
+			return errors.New("can only advance to results from day phase")
+		}
+		return nil
+
 	case "toggle_timer":
 		if g.phase != PhaseDay {
 			return errors.New("can only toggle timer during day phase")
@@ -163,6 +175,90 @@ func (g *Game) ValidateAction(playerID string, action core.Action) error {
 			return errors.New("can only vote during day phase")
 		}
 		// Allow vote changes - don't check if already voted
+		return nil
+
+	// Night actions
+	case "werewolf_view_center":
+		if g.phase != PhaseNight {
+			return errors.New("can only perform night actions during night phase")
+		}
+		role := g.roleAssignments[playerID]
+		if role != RoleWerewolf {
+			return errors.New("only werewolves can view center cards")
+		}
+		// Check if they're the only werewolf
+		werewolfCount := 0
+		for _, r := range g.roleAssignments {
+			if r == RoleWerewolf {
+				werewolfCount++
+			}
+		}
+		if werewolfCount != 1 {
+			return errors.New("can only view center card if you are the only werewolf")
+		}
+		if g.nightActionsComplete[RoleWerewolf] {
+			return errors.New("werewolf has already acted")
+		}
+		return nil
+
+	case "seer_view_player":
+		if g.phase != PhaseNight {
+			return errors.New("can only perform night actions during night phase")
+		}
+		if g.roleAssignments[playerID] != RoleSeer {
+			return errors.New("only seer can view player roles")
+		}
+		if g.nightActionsComplete[RoleSeer] {
+			return errors.New("seer has already acted")
+		}
+		return nil
+
+	case "seer_view_center":
+		if g.phase != PhaseNight {
+			return errors.New("can only perform night actions during night phase")
+		}
+		if g.roleAssignments[playerID] != RoleSeer {
+			return errors.New("only seer can view center cards")
+		}
+		if g.nightActionsComplete[RoleSeer] {
+			return errors.New("seer has already acted")
+		}
+		return nil
+
+	case "robber_swap":
+		if g.phase != PhaseNight {
+			return errors.New("can only perform night actions during night phase")
+		}
+		if g.roleAssignments[playerID] != RoleRobber {
+			return errors.New("only robber can swap roles")
+		}
+		if g.nightActionsComplete[RoleRobber] {
+			return errors.New("robber has already acted")
+		}
+		return nil
+
+	case "troublemaker_swap":
+		if g.phase != PhaseNight {
+			return errors.New("can only perform night actions during night phase")
+		}
+		if g.roleAssignments[playerID] != RoleTroublemaker {
+			return errors.New("only troublemaker can swap players")
+		}
+		if g.nightActionsComplete[RoleTroublemaker] {
+			return errors.New("troublemaker has already acted")
+		}
+		return nil
+
+	case "drunk_swap":
+		if g.phase != PhaseNight {
+			return errors.New("can only perform night actions during night phase")
+		}
+		if g.roleAssignments[playerID] != RoleDrunk {
+			return errors.New("only drunk can swap with center")
+		}
+		if g.nightActionsComplete[RoleDrunk] {
+			return errors.New("drunk has already acted")
+		}
 		return nil
 
 	default:
@@ -204,6 +300,24 @@ func (g *Game) ProcessAction(playerID string, action core.Action) ([]core.GameEv
 			}
 			events = append(events, dayEvents...)
 		}
+
+	case "advance_to_results":
+		// Advance to results phase to show all final roles
+		g.phase = PhaseResults
+
+		phaseEvent, _ := core.NewPublicEvent(core.EventPhaseChanged, "system", core.PhaseChangedPayload{
+			Phase: core.GamePhase{
+				Name:    string(PhaseResults),
+				Message: "Role reveal - see everyone's final roles!",
+			},
+		})
+		events = append(events, phaseEvent)
+
+		// Send current role assignments to all players
+		rolesEvent, _ := core.NewPublicEvent("roles_revealed", "system", RolesRevealedPayload{
+			Roles: g.roleAssignments,
+		})
+		events = append(events, rolesEvent)
 
 	case "toggle_timer":
 		var timerPayload struct {
@@ -274,6 +388,172 @@ func (g *Game) ProcessAction(playerID string, action core.Action) ([]core.GameEv
 
 			g.phase = PhaseResults
 		}
+
+	// Night actions
+	case "werewolf_view_center":
+		var payload WerewolfViewCenterPayload
+		if err := json.Unmarshal(action.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		if payload.CenterIndex < 0 || payload.CenterIndex >= len(g.centerCards) {
+			return nil, errors.New("invalid center card index")
+		}
+
+		g.nightActionsComplete[RoleWerewolf] = true
+
+		// Send private result to werewolf
+		resultEvent, _ := core.NewPrivateEvent("werewolf_view_center_result", "system", WerewolfViewCenterResultPayload{
+			CenterIndex: payload.CenterIndex,
+			Role:        g.centerCards[payload.CenterIndex],
+		}, []string{playerID})
+		events = append(events, resultEvent)
+
+	case "seer_view_player":
+		var payload SeerViewPayload
+		if err := json.Unmarshal(action.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		// Validate target exists and is not the seer
+		targetRole, exists := g.roleAssignments[payload.TargetID]
+		if !exists {
+			return nil, errors.New("target player not found")
+		}
+		if payload.TargetID == playerID {
+			return nil, errors.New("seer cannot view their own card")
+		}
+
+		g.nightActionsComplete[RoleSeer] = true
+
+		// Send private result to seer
+		resultEvent, _ := core.NewPrivateEvent("seer_result", "system", SeerResultPayload{
+			TargetID: payload.TargetID,
+			Role:     targetRole,
+		}, []string{playerID})
+		events = append(events, resultEvent)
+
+	case "seer_view_center":
+		var payload SeerViewCenterPayload
+		if err := json.Unmarshal(action.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		if len(payload.CenterIndices) != 2 {
+			return nil, errors.New("seer must view exactly 2 center cards")
+		}
+
+		for _, idx := range payload.CenterIndices {
+			if idx < 0 || idx >= len(g.centerCards) {
+				return nil, errors.New("invalid center card index")
+			}
+		}
+
+		g.nightActionsComplete[RoleSeer] = true
+
+		// Build result
+		resultPayload := SeerViewCenterResultPayload{
+			Cards: make([]struct {
+				Index int      `json:"index"`
+				Role  RoleType `json:"role"`
+			}, 2),
+		}
+		for i, idx := range payload.CenterIndices {
+			resultPayload.Cards[i].Index = idx
+			resultPayload.Cards[i].Role = g.centerCards[idx]
+		}
+
+		// Send private result to seer
+		resultEvent, _ := core.NewPrivateEvent("seer_center_result", "system", resultPayload, []string{playerID})
+		events = append(events, resultEvent)
+
+	case "robber_swap":
+		var payload RobberSwapPayload
+		if err := json.Unmarshal(action.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		// Validate target exists and is not the robber
+		if payload.TargetID == playerID {
+			return nil, errors.New("robber cannot swap with themselves")
+		}
+		if _, exists := g.roleAssignments[payload.TargetID]; !exists {
+			return nil, errors.New("target player not found")
+		}
+
+		// Perform the swap
+		robberRole := g.roleAssignments[playerID]
+		targetRole := g.roleAssignments[payload.TargetID]
+		g.roleAssignments[playerID] = targetRole
+		g.roleAssignments[payload.TargetID] = robberRole
+
+		g.nightActionsComplete[RoleRobber] = true
+
+		// Send private result to robber (their new role)
+		resultEvent, _ := core.NewPrivateEvent("robber_result", "system", RobberResultPayload{
+			TargetID: payload.TargetID,
+			NewRole:  targetRole,
+		}, []string{playerID})
+		events = append(events, resultEvent)
+
+	case "troublemaker_swap":
+		var payload TroublemakerSwapPayload
+		if err := json.Unmarshal(action.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		// Validate targets
+		if payload.Player1ID == playerID || payload.Player2ID == playerID {
+			return nil, errors.New("troublemaker cannot swap themselves")
+		}
+		if payload.Player1ID == payload.Player2ID {
+			return nil, errors.New("must swap two different players")
+		}
+		if _, exists := g.roleAssignments[payload.Player1ID]; !exists {
+			return nil, errors.New("player 1 not found")
+		}
+		if _, exists := g.roleAssignments[payload.Player2ID]; !exists {
+			return nil, errors.New("player 2 not found")
+		}
+
+		// Perform the swap
+		player1Role := g.roleAssignments[payload.Player1ID]
+		player2Role := g.roleAssignments[payload.Player2ID]
+		g.roleAssignments[payload.Player1ID] = player2Role
+		g.roleAssignments[payload.Player2ID] = player1Role
+
+		g.nightActionsComplete[RoleTroublemaker] = true
+
+		// Troublemaker doesn't see what they swapped, just confirmation
+		confirmEvent, _ := core.NewPrivateEvent("troublemaker_confirmed", "system", map[string]interface{}{
+			"player1Id": payload.Player1ID,
+			"player2Id": payload.Player2ID,
+		}, []string{playerID})
+		events = append(events, confirmEvent)
+
+	case "drunk_swap":
+		var payload DrunkSwapPayload
+		if err := json.Unmarshal(action.Payload, &payload); err != nil {
+			return nil, err
+		}
+
+		if payload.CenterIndex < 0 || payload.CenterIndex >= len(g.centerCards) {
+			return nil, errors.New("invalid center card index")
+		}
+
+		// Perform the swap
+		drunkRole := g.roleAssignments[playerID]
+		centerRole := g.centerCards[payload.CenterIndex]
+		g.roleAssignments[playerID] = centerRole
+		g.centerCards[payload.CenterIndex] = drunkRole
+
+		g.nightActionsComplete[RoleDrunk] = true
+
+		// Drunk doesn't see their new role, just confirmation
+		confirmEvent, _ := core.NewPrivateEvent("drunk_confirmed", "system", map[string]interface{}{
+			"centerIndex": payload.CenterIndex,
+		}, []string{playerID})
+		events = append(events, confirmEvent)
 
 	default:
 		return nil, fmt.Errorf("unknown action type: %s", action.Type)

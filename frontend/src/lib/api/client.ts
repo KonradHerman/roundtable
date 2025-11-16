@@ -136,5 +136,10 @@ export const api = {
 		request<void>(`/rooms/${roomCode}/start`, {
 			method: 'POST',
 			body: JSON.stringify(req)
+		}),
+
+	resetGame: (roomCode: string) =>
+		request<void>(`/rooms/${roomCode}/reset`, {
+			method: 'POST'
 		})
 };

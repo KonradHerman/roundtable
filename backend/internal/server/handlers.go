@@ -15,16 +15,16 @@ import (
 
 // Server holds the HTTP server and its dependencies.
 type Server struct {
-	store      store.Store
-	connMgr    *ConnectionManager
+	store        store.Store
+	connMgr      *ConnectionManager
 	gameRegistry *games.Registry
 }
 
 // NewServer creates a new server instance.
 func NewServer(store store.Store) *Server {
 	return &Server{
-		store:      store,
-		connMgr:    NewConnectionManager(store),
+		store:        store,
+		connMgr:      NewConnectionManager(store),
 		gameRegistry: games.NewRegistry(),
 	}
 }
@@ -36,9 +36,9 @@ func (s *Server) ConnectionManager() *ConnectionManager {
 
 // CreateRoomRequest is the payload for creating a room.
 type CreateRoomRequest struct {
-	GameType   string `json:"gameType"`
+	GameType    string `json:"gameType"`
 	DisplayName string `json:"displayName"` // Host's display name
-	MaxPlayers int    `json:"maxPlayers,omitempty"`
+	MaxPlayers  int    `json:"maxPlayers,omitempty"`
 }
 
 // CreateRoomResponse is the response for creating a room.
@@ -257,6 +257,44 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
+}
+
+// HandleResetGame resets the room back to lobby for a new game.
+func (s *Server) HandleResetGame(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract room code from URL path
+	roomCode := r.PathValue("code")
+	if roomCode == "" {
+		http.Error(w, "Room code required", http.StatusBadRequest)
+		return
+	}
+
+	// Get room
+	room, err := s.store.GetRoom(roomCode)
+	if err != nil {
+		http.Error(w, "Room not found", http.StatusNotFound)
+		return
+	}
+
+	// Reset the game
+	if err := room.ResetGame(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Broadcast updated room state to all players
+	s.connMgr.BroadcastRoomState(roomCode)
+
+	log.Printf("Room %s reset for new game", roomCode)
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "reset"})
 }
 
 // HandleWebSocket upgrades HTTP connection to WebSocket.
