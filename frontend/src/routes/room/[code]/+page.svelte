@@ -15,6 +15,7 @@
 	let wsStore: ReturnType<typeof createWebSocket> | null = null;
 	let connectionStatus: string = 'disconnected';
 	let roomState: any = null;
+	let previousStatus: string | null = null;
 	let gameState: any = null;
 	let copied = false;
 
@@ -56,11 +57,21 @@
 			case 'authenticated':
 				roomState = message.payload.roomState;
 				gameStore.setRoomState(roomState);
+				previousStatus = roomState.status;
 				break;
 
 			case 'room_state':
-				roomState = message.payload.roomState;
+				const newRoomState = message.payload.roomState;
+				
+				// If room was reset (went from playing/finished back to waiting), clear game store
+				if (previousStatus && (previousStatus === 'playing' || previousStatus === 'finished') && newRoomState.status === 'waiting') {
+					console.log('Room reset detected, clearing game store');
+					gameStore.reset();
+				}
+				
+				roomState = newRoomState;
 				gameStore.setRoomState(roomState);
+				previousStatus = roomState.status;
 				break;
 
 			case 'event':

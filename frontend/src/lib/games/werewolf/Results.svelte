@@ -21,15 +21,22 @@
 	let unsubscribe = gameStore.subscribe(($game) => {
 		$game.events.forEach(event => {
 			if (event.type === 'roles_revealed') {
-				// Roles revealed for display (before voting/game finished)
+				// Roles revealed for display (this is the main result screen)
 				allRoles = event.payload.roles || {};
+				// If we don't have roles yet and game finished event came first, use those
+				if (Object.keys(allRoles).length === 0 && gameResults?.finalState?.roles) {
+					allRoles = gameResults.finalState.roles;
+				}
 			} else if (event.type === 'game_finished') {
-				// Game finished with winners determined
+				// Game finished with winners determined (optional, for future voting feature)
 				hasGameFinished = true;
 				gameResults = event.payload.results;
 				winners = gameResults.winners || [];
 				winReason = gameResults.winReason || '';
-				allRoles = gameResults.finalState?.roles || {};
+				// Update roles from game finished if available
+				if (gameResults.finalState?.roles) {
+					allRoles = gameResults.finalState.roles;
+				}
 				eliminated = gameResults.finalState?.eliminated || [];
 
 				// Show confetti if we won
@@ -154,42 +161,48 @@
 	{/if}
 
 	<!-- All roles revealed -->
-	<Card class="p-6 bg-card border-primary">
-		<div class="flex items-center gap-3 mb-4">
-			<Trophy class="w-6 h-6 text-primary" />
-			<h3 class="font-semibold text-lg">All Final Roles</h3>
-		</div>
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-			{#each Object.entries(allRoles) as [playerId, role]}
-				{@const player = roomState?.players?.find((p: any) => p.id === playerId)}
-				{@const isWinner = hasGameFinished && winners.includes(playerId)}
-				<div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg {isWinner ? 'ring-2 ring-gruvbox-green' : ''}">
-					<div class="flex items-center gap-3">
-						<span class="text-2xl">{getRoleEmoji(role)}</span>
-						<div>
-							<p class="font-medium">
-								{player?.displayName || 'Unknown'}
-								{#if playerId === $session?.playerId}
-									<span class="text-xs text-muted-foreground">(You)</span>
-								{/if}
-							</p>
-							<p class="text-sm text-muted-foreground capitalize">{role?.replace('_', ' ')}</p>
+	{#if Object.keys(allRoles).length > 0}
+		<Card class="p-6 bg-card border-primary">
+			<div class="flex items-center gap-3 mb-4">
+				<Trophy class="w-6 h-6 text-primary" />
+				<h3 class="font-semibold text-lg">All Final Roles</h3>
+			</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+				{#each Object.entries(allRoles) as [playerId, role]}
+					{@const player = roomState?.players?.find((p: any) => p.id === playerId)}
+					{@const isWinner = hasGameFinished && winners.includes(playerId)}
+					<div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg {isWinner ? 'ring-2 ring-gruvbox-green' : ''}">
+						<div class="flex items-center gap-3">
+							<span class="text-2xl">{getRoleEmoji(role)}</span>
+							<div>
+								<p class="font-medium">
+									{player?.displayName || 'Unknown'}
+									{#if playerId === $session?.playerId}
+										<span class="text-xs text-muted-foreground">(You)</span>
+									{/if}
+								</p>
+								<p class="text-sm text-muted-foreground capitalize">{role?.replace('_', ' ')}</p>
+							</div>
+						</div>
+						<div class="flex flex-col items-end gap-1">
+							<Badge variant={getRoleBadgeVariant(role)} class="capitalize">
+								{role}
+							</Badge>
+							{#if isWinner}
+								<Badge class="bg-gruvbox-green text-white border-gruvbox-green">
+									Winner
+								</Badge>
+							{/if}
 						</div>
 					</div>
-					<div class="flex flex-col items-end gap-1">
-						<Badge variant={getRoleBadgeVariant(role)} class="capitalize">
-							{role}
-						</Badge>
-						{#if isWinner}
-							<Badge class="bg-gruvbox-green text-white border-gruvbox-green">
-								Winner
-							</Badge>
-						{/if}
-					</div>
-				</div>
-			{/each}
-		</div>
-	</Card>
+				{/each}
+			</div>
+		</Card>
+	{:else}
+		<Card class="p-6">
+			<p class="text-center text-muted-foreground">Loading roles...</p>
+		</Card>
+	{/if}
 
 	<!-- Play again button -->
 	<Card class="p-6">

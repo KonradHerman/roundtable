@@ -4,12 +4,14 @@
 	import { session } from '$lib/stores/session';
 	import { gameStore } from '$lib/stores/game';
 	import { onMount } from 'svelte';
+	import CenterCardSelect from './CenterCardSelect.svelte';
 
 	export let roomState: any;
 	export let wsStore: any;
 	export let nightScript: any[] = [];
 
-	let scriptExpanded = true;
+	let scriptExpanded = false;
+	let actionVisible = false;
 	let checkedSteps: Record<number, boolean> = {};
 	
 	// Role-specific state
@@ -122,36 +124,27 @@
 </script>
 
 <div class="space-y-6">
-	<!-- Main instruction card -->
-	<Card class="p-6 bg-gruvbox-purple/20 border-gruvbox-purple">
-		<div class="flex items-center gap-3">
-			<Moon class="w-8 h-8 text-gruvbox-purple-light" />
-			<div>
-				<h3 class="font-semibold text-xl text-foreground">Night Phase</h3>
-				<p class="text-muted-foreground">Everyone close your eyes 😴</p>
-			</div>
-		</div>
-	</Card>
-
 	<!-- Host: Narration script -->
 	{#if isHost}
-		<Card class="p-6 border-primary">
-			<button
-				on:click={() => scriptExpanded = !scriptExpanded}
-				class="w-full flex items-center justify-between mb-4"
+		{#if !scriptExpanded}
+			<Button
+				on:click={() => scriptExpanded = true}
+				class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 			>
-				<div class="flex items-center gap-2">
-					<span class="text-2xl">📜</span>
-					<h3 class="font-semibold text-lg">Narration Script (Host Only)</h3>
-				</div>
-				{#if scriptExpanded}
+				📜 Show Host Script
+			</Button>
+		{:else}
+			<Card class="p-6 border-primary">
+				<button
+					on:click={() => scriptExpanded = false}
+					class="w-full flex items-center justify-between mb-4"
+				>
+					<div class="flex items-center gap-2">
+						<span class="text-2xl">📜</span>
+						<h3 class="font-semibold text-lg">Narration Script (Host Only)</h3>
+					</div>
 					<ChevronUp class="w-5 h-5" />
-				{:else}
-					<ChevronDown class="w-5 h-5" />
-				{/if}
-			</button>
-
-			{#if scriptExpanded}
+				</button>
 				<div class="space-y-3">
 					<p class="text-sm text-muted-foreground mb-4">
 						Read these instructions aloud in order. Check off each role as they complete their action.
@@ -189,13 +182,23 @@
 						</p>
 					</div>
 				</div>
-			{/if}
-		</Card>
+			</Card>
+		{/if}
 	{/if}
 
 	<!-- Player role-specific UIs -->
 	{#if !isHost || myRole}
-		{#if myRole === 'werewolf'}
+		{#if !actionVisible}
+			<Button
+				on:click={() => actionVisible = true}
+				class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
+			>
+				👁️ Show Night Action
+			</Button>
+			<p class="text-sm text-muted-foreground text-center">
+				Tap to see your night action (keep your screen private!)
+			</p>
+		{:else if myRole === 'werewolf'}
 			<Card class="p-6 bg-red-500/10 border-red-500/30">
 				<div class="flex items-center gap-3 mb-4">
 					<Users class="w-6 h-6 text-red-400" />
@@ -216,25 +219,35 @@
 					</div>
 				{:else}
 					<div class="space-y-4">
-						<p class="text-sm">You are the only werewolf! You may view one center card.</p>
+						<p class="text-sm mb-4">You are the only werewolf! You may view one center card.</p>
 						{#if !hasActed}
-							<div class="grid grid-cols-3 gap-2">
-								{#each [0, 1, 2] as index}
-									<button
-										on:click={() => handleWerewolfViewCenter(index)}
-										class="p-4 bg-muted hover:bg-primary/20 rounded-lg border-2 border-border hover:border-primary transition-all"
-									>
-										<p class="text-sm font-medium">Card {index + 1}</p>
-									</button>
-								{/each}
-							</div>
+							<CenterCardSelect
+								cards={[0, 1, 2]}
+								selectedCards={selectedCenterCard !== null ? [selectedCenterCard] : []}
+								flippedCards={{}}
+								maxSelection={1}
+								mode="select"
+								onSelect={handleWerewolfViewCenter}
+							/>
 						{:else if actionResult}
-							<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-								<p class="text-sm font-medium">Center card {actionResult.centerIndex + 1}: <span class="capitalize">{actionResult.role}</span></p>
-							</div>
+							<CenterCardSelect
+								cards={[actionResult.centerIndex]}
+								selectedCards={[]}
+								flippedCards={{ [actionResult.centerIndex]: actionResult.role }}
+								maxSelection={1}
+								mode="reveal"
+								onSelect={() => {}}
+							/>
 						{/if}
 					</div>
 				{/if}
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
 			</Card>
 
 		{:else if myRole === 'seer'}
@@ -272,46 +285,58 @@
 							</div>
 						</div>
 
-						<div>
-							<p class="text-sm font-medium mb-2">View two center cards:</p>
-							<div class="grid grid-cols-3 gap-2">
-								{#each [0, 1, 2] as index}
-									<button
-										on:click={() => {
-											if (selectedCenterCards.includes(index)) {
-												selectedCenterCards = selectedCenterCards.filter(i => i !== index);
-											} else if (selectedCenterCards.length < 2) {
-												selectedCenterCards = [...selectedCenterCards, index];
-											}
-										}}
-										class="p-4 rounded-lg border-2 transition-all {selectedCenterCards.includes(index) ? 'bg-primary/20 border-primary' : 'bg-muted border-border hover:border-primary/50'}"
-									>
-										<p class="text-sm font-medium">Card {index + 1}</p>
-									</button>
-								{/each}
-							</div>
-							{#if selectedCenterCards.length === 2}
-								<Button
-									on:click={() => handleSeerViewCenter(selectedCenterCards)}
-									class="w-full mt-3"
-								>
-									View Selected Cards
-								</Button>
-							{/if}
-						</div>
-					</div>
-				{:else if actionResult}
-					<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-						{#if actionResult.targetId}
-							<p class="font-medium">{getPlayerName(actionResult.targetId)} is: <span class="capitalize text-lg">{actionResult.role}</span></p>
-						{:else if actionResult.cards}
-							<p class="font-medium mb-2">Center cards:</p>
-							{#each actionResult.cards as card}
-								<p>Card {card.index + 1}: <span class="capitalize">{card.role}</span></p>
-							{/each}
+					<div>
+						<p class="text-sm font-medium mb-4">View two center cards:</p>
+						<CenterCardSelect
+							cards={[0, 1, 2]}
+							selectedCards={selectedCenterCards}
+							flippedCards={{}}
+							maxSelection={2}
+							mode="select"
+							onSelect={(index) => {
+								if (selectedCenterCards.includes(index)) {
+									selectedCenterCards = selectedCenterCards.filter(i => i !== index);
+								} else if (selectedCenterCards.length < 2) {
+									selectedCenterCards = [...selectedCenterCards, index];
+								}
+							}}
+						/>
+						{#if selectedCenterCards.length === 2}
+							<Button
+								on:click={() => handleSeerViewCenter(selectedCenterCards)}
+								class="w-full mt-4"
+							>
+								View Selected Cards
+							</Button>
 						{/if}
 					</div>
+					</div>
+				{:else if actionResult}
+					{#if actionResult.targetId}
+						<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+							<p class="font-medium">{getPlayerName(actionResult.targetId)} is: <span class="capitalize text-lg">{actionResult.role}</span></p>
+						</div>
+					{:else if actionResult.cards}
+						<div class="space-y-4">
+							<p class="font-medium text-center">Center cards revealed:</p>
+							<CenterCardSelect
+								cards={actionResult.cards.map((c: any) => c.index)}
+								selectedCards={[]}
+								flippedCards={Object.fromEntries(actionResult.cards.map((c: any) => [c.index, c.role]))}
+								maxSelection={2}
+								mode="reveal"
+								onSelect={() => {}}
+							/>
+						</div>
+					{/if}
 				{/if}
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
 			</Card>
 
 		{:else if myRole === 'robber'}
@@ -341,6 +366,13 @@
 						<p class="text-lg mt-2">Your new role: <span class="capitalize font-bold">{actionResult.newRole}</span></p>
 					</div>
 				{/if}
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
 			</Card>
 
 		{:else if myRole === 'troublemaker'}
@@ -373,7 +405,7 @@
 							<div>
 								<p class="text-sm font-medium mb-2">Select second player:</p>
 								<div class="space-y-2">
-									{#each otherPlayers.filter(p => p.id !== selectedPlayer1) as player}
+									{#each otherPlayers.filter((p: any) => p.id !== selectedPlayer1) as player}
 										<button
 											on:click={() => selectedPlayer2 = player.id}
 											class="w-full p-3 rounded-lg border-2 transition-all text-left {selectedPlayer2 === player.id ? 'bg-primary/20 border-primary' : 'bg-muted border-border hover:border-primary/50'}"
@@ -387,7 +419,11 @@
 
 						{#if selectedPlayer1 && selectedPlayer2}
 							<Button
-								on:click={() => handleTroublemakerSwap(selectedPlayer1, selectedPlayer2)}
+								on:click={() => {
+									if (selectedPlayer1 && selectedPlayer2) {
+										handleTroublemakerSwap(selectedPlayer1, selectedPlayer2);
+									}
+								}}
 								class="w-full"
 							>
 								Swap These Players
@@ -400,35 +436,50 @@
 						<p class="text-sm text-muted-foreground mt-2">You don't know what roles they had</p>
 					</div>
 				{/if}
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
 			</Card>
 
 		{:else if myRole === 'drunk'}
 			<Card class="p-6 bg-amber-500/10 border-amber-500/30">
-				<div class="flex items-center gap-3 mb-4">
-					<span class="text-2xl">🍺</span>
-					<div>
-						<h3 class="font-semibold text-lg">Drunk</h3>
-						<p class="text-sm text-muted-foreground">Swap with a center card (you don't see your new role)</p>
-					</div>
+			<div class="flex items-center gap-3 mb-4">
+				<span class="text-2xl">🍺</span>
+				<div>
+					<h3 class="font-semibold text-lg">Drunk</h3>
+					<p class="text-sm text-muted-foreground">Swap with a center card (you don't see your new role)</p>
 				</div>
+			</div>
 
-				{#if !hasActed}
-					<div class="grid grid-cols-3 gap-2">
-						{#each [0, 1, 2] as index}
-							<button
-								on:click={() => handleDrunkSwap(index)}
-								class="p-4 bg-muted hover:bg-primary/20 rounded-lg border-2 border-border hover:border-primary transition-all"
-							>
-								<p class="text-sm font-medium">Card {index + 1}</p>
-							</button>
-						{/each}
-					</div>
-				{:else}
-					<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-						<p class="font-medium">✓ You swapped with center card {actionResult.centerIndex + 1}</p>
-						<p class="text-sm text-muted-foreground mt-2">You don't know your new role!</p>
-					</div>
-				{/if}
+			{#if !hasActed}
+				<div class="space-y-4">
+					<p class="text-sm text-center">Select a center card to swap with:</p>
+					<CenterCardSelect
+						cards={[0, 1, 2]}
+						selectedCards={[]}
+						flippedCards={{}}
+						maxSelection={1}
+						mode="select"
+						onSelect={handleDrunkSwap}
+					/>
+				</div>
+			{:else}
+				<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+					<p class="font-medium">✓ You swapped with center card {actionResult.centerIndex + 1}</p>
+					<p class="text-sm text-muted-foreground mt-2">You don't know your new role!</p>
+				</div>
+			{/if}
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
 			</Card>
 
 		{:else if myRole === 'mason'}
@@ -453,9 +504,16 @@
 				{:else}
 					<p class="text-muted-foreground">You are the only mason in the game.</p>
 				{/if}
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
 			</Card>
 
-		{:else if myRole === 'villager' || myRole === 'tanner' || myRole === 'hunter' || myRole === 'insomniac'}
+		{:else if myRole === 'villager' || myRole === 'tanner' || myRole === 'hunter' || myRole === 'insomniac' || myRole === 'minion'}
 			<Card class="p-6">
 				<div class="text-center space-y-4">
 					<div class="text-6xl">😴</div>
@@ -467,11 +525,20 @@
 							You have no night action. You want to get eliminated!
 						{:else if myRole === 'hunter'}
 							You have no night action. If you die, the player you voted for also dies.
+						{:else if myRole === 'minion'}
+							You know the werewolves but have no night action.
 						{:else}
 							You have no night action. Keep your eyes closed.
 						{/if}
 					</p>
 				</div>
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-6"
+				>
+					Hide Action
+				</Button>
 			</Card>
 		{/if}
 	{/if}
