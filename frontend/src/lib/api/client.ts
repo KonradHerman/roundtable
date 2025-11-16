@@ -55,20 +55,43 @@ async function request<T>(
 	endpoint: string,
 	options?: RequestInit
 ): Promise<T> {
-	const response = await fetch(`${API_BASE}${endpoint}`, {
-		...options,
-		headers: {
-			'Content-Type': 'application/json',
-			...options?.headers
+	try {
+		const url = `${API_BASE}${endpoint}`;
+		console.log(`API Request: ${options?.method || 'GET'} ${url}`);
+
+		const response = await fetch(url, {
+			...options,
+			headers: {
+				'Content-Type': 'application/json',
+				...options?.headers
+			}
+		});
+
+		if (!response.ok) {
+			const contentType = response.headers.get('content-type');
+			let error: string;
+
+			// If response is HTML (likely an error page), provide a better message
+			if (contentType && contentType.includes('text/html')) {
+				error = `Backend connection failed. Make sure the backend server is running on ${API_BASE}`;
+			} else {
+				error = await response.text();
+			}
+
+			throw new APIError(response.status, error || response.statusText);
 		}
-	});
 
-	if (!response.ok) {
-		const error = await response.text();
-		throw new APIError(response.status, error || response.statusText);
+		return response.json();
+	} catch (err) {
+		if (err instanceof APIError) {
+			throw err;
+		}
+		// Network errors or other fetch failures
+		if (err instanceof TypeError && err.message.includes('fetch')) {
+			throw new APIError(0, `Cannot connect to backend server at ${API_BASE}. Please ensure:\n1. Backend is running (go run cmd/server/main.go in backend/)\n2. Backend is accessible at ${API_BASE}\n3. You're accessing the frontend at http://localhost:5173`);
+		}
+		throw new APIError(0, `Request failed: ${err instanceof Error ? err.message : String(err)}`);
 	}
-
-	return response.json();
 }
 
 export const api = {
