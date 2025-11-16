@@ -95,7 +95,7 @@
 						type="text"
 						bind:value={roomCode}
 						placeholder="ABC123"
-						class="w-full px-4 py-3 text-center text-2xl font-mono font-bold tracking-wider uppercase rounded-lg border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
+						class="w-full px-4 py-3 text-center text-2xl font-mono font-bold tracking-wider uppercase rounded-lg border-2 border-input bg-background text-foreground focus:border-primary focus:outline-none transition-colors"
 						maxlength="6"
 						disabled={loading}
 						autocomplete="off"
@@ -104,39 +104,41 @@
 					/>
 				</div>
 
-				<!-- Your name -->
-				<div class="space-y-2">
-					<label for="name" class="block text-sm font-medium">
-						Your Name
-					</label>
-					<input
-						id="name"
-						type="text"
-						bind:value={displayName}
-						placeholder="Enter your name"
-						class="w-full px-4 py-3 text-base rounded-lg border-2 border-input bg-background focus:border-primary focus:outline-none transition-colors"
-						maxlength="20"
-						disabled={loading}
-						autocomplete="off"
-						style="min-height: 48px;"
-					/>
-				</div>
+				{#if roomCode.trim()}
+					<!-- Your name -->
+					<div class="space-y-2">
+						<label for="name" class="block text-sm font-medium">
+							Your Name
+						</label>
+						<input
+							id="name"
+							type="text"
+							bind:value={displayName}
+							placeholder="Enter your name"
+							class="w-full px-4 py-3 text-base rounded-lg border-2 border-input bg-background text-foreground focus:border-primary focus:outline-none transition-colors"
+							maxlength="20"
+							disabled={loading}
+							autocomplete="off"
+							style="min-height: 48px;"
+						/>
+					</div>
 
-				<!-- Error message -->
-				{#if error}
-					<Card class="p-4 bg-destructive/10 border-destructive/20">
-						<p class="text-sm text-destructive">{error}</p>
-					</Card>
+					<!-- Error message -->
+					{#if error}
+						<Card class="p-4 bg-destructive/10 border-destructive/20">
+							<p class="text-sm text-destructive">{error}</p>
+						</Card>
+					{/if}
+
+					<!-- Submit button -->
+					<Button
+						type="submit"
+						class="w-full h-12 text-base"
+						disabled={loading || !roomCode.trim() || !displayName.trim()}
+					>
+						{loading ? 'Joining...' : 'Join Room'}
+					</Button>
 				{/if}
-
-				<!-- Submit button -->
-				<Button
-					type="submit"
-					class="w-full h-12 text-base"
-					disabled={loading || !roomCode.trim() || !displayName.trim()}
-				>
-					{loading ? 'Joining...' : 'Join Room'}
-				</Button>
 			</form>
 		</Card>
 	</div>
