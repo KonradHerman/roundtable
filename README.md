@@ -159,15 +159,23 @@ npm run dev
 
 ---
 
-## 🎮 How to Play (MVP)
+## 🎮 How to Play
 
 1. **Host creates room**: Go to app → "Host a Game" → Choose Werewolf → Enter name → Get room code `XJ4K2P`
 2. **Players join**: Others go to app → "Join Game" → Enter code `XJ4K2P` + name
-3. **Host starts**: Configure roles (3+ players) → "Start Game"
-4. **Night phase**: Each player sees their role. Server wakes roles in sequence (Werewolves see each other, Seer views a role, etc.)
-5. **Day phase**: Discuss (in person!), then vote on your phone for who to eliminate
-6. **Results**: See who won, all roles revealed
-7. **Play again**: Same players, new game
+3. **Host starts**: Configure roles (must be player count + 3) → "Start Game"
+4. **Role reveal**: Each player privately views their role on their phone
+5. **Night phase**: Roles wake in sequence and perform actions on their phones:
+   - Werewolves see each other
+   - Seer views another player's role or two center cards
+   - Robber swaps cards with another player
+   - Troublemaker swaps two other players' cards
+   - Drunk swaps with a center card (doesn't see new role)
+   - Insomniac sees their final role
+6. **Day phase**: Discuss (in person!) with optional timer. Use your knowledge to figure out who the werewolves are!
+7. **Vote**: Everyone simultaneously points at who to eliminate (traditional ONUW style)
+8. **Reveal**: All players reveal their final roles on their phones to determine winner
+9. **Play again**: Host can start a new game with same players
 
 ---
 
@@ -185,42 +193,40 @@ npm run dev
 - [x] WebSocket and session stores
 - [x] Docker configuration
 
-### 🔄 Phase 2: Werewolf MVP (NEXT - 5-6 days)
-- [ ] Complete Werewolf game logic
-  - [ ] Full night phase with all role actions
-  - [ ] Day phase voting
-  - [ ] Results calculation
-- [ ] Game UI components
-  - [ ] Lobby with player list
-  - [ ] Role reveal animation
-  - [ ] Night phase UI (role-specific)
-  - [ ] Day phase voting UI
-  - [ ] Results screen
-- [ ] Host start game flow
-- [ ] End-to-end playtest
+### 🔄 Phase 2: Werewolf MVP (IN PROGRESS)
+**Completed:**
+- [x] Lobby with player list
+- [x] Role assignment (players + 3 center cards)
+- [x] Role reveal with acknowledgements
+- [x] Night phase with host narration script
+- [x] Day phase with timer (start/pause/extend)
+- [x] Results calculation logic
+- [x] Game abstraction layer
+- [x] Host start game flow
 
-### 📦 Phase 3: Polish (3-4 days)
+**Current Sprint:**
+- [ ] Digital night actions (Seer, Robber, Troublemaker, Drunk, Insomniac)
+- [ ] Remove phone voting (use physical voting instead)
+- [ ] Role reveal screen (show all roles after discussion)
+- [ ] Play again feature
+- [ ] Fix host tracking
+
+### 📦 Phase 3: Polish & Stability (3-4 days)
 - [ ] QR code generation for room
 - [ ] Reconnection handling
-- [ ] Timer animations
-- [ ] Mobile UI polish (haptic feedback, sounds)
-- [ ] "Play again" feature
+- [ ] Mobile UI polish (better touch targets)
 - [ ] Error boundaries & loading states
+- [ ] Edge case handling
 
-### 🖥️ Phase 4: Board View (2-3 days)
-- [ ] `/room/:code/board` route
-- [ ] Public state display
-- [ ] Werewolf board (timer, phase, vote status)
-- [ ] QR code on board to join
-
-### 🎯 Phase 5: Second Game - Avalon (4-5 days)
+### 🎯 Phase 4: Second Game - Avalon (4-5 days)
+- [ ] Extract reusable game patterns
 - [ ] Avalon game implementation
-- [ ] Validate game abstraction
-- [ ] Mission voting
+- [ ] Validate game abstraction works for different game types
+- [ ] Mission voting UI
 - [ ] Team selection UI
 - [ ] Merlin/Assassin reveal
 
-### 🚢 Phase 6: Production (3-4 days)
+### 🚢 Phase 5: Production Ready (3-4 days)
 - [ ] Redis store implementation
 - [ ] Room expiry (cleanup)
 - [ ] Rate limiting
@@ -229,55 +235,61 @@ npm run dev
 
 ---
 
-## 🎯 What to Build First (Day 1-5 Quick Win)
+## 🎯 Current Status & Next Steps
 
-**Goal**: Playable prototype in one week
+**✅ Working Now:**
+- Full lobby system with real-time player list
+- Role assignment following ONUW rules (players + 3 center cards)
+- Role reveal phase with acknowledgements
+- Night phase with host narration script
+- Day phase with timer controls
+- Event sourcing architecture ready for multiple games
 
-1. **Day 1-2**: Complete basic lobby
-   - Room creation works
-   - Players can join and see each other
-   - WebSocket messages flow
+**🔨 Next Sprint (Digital Night Actions):**
+1. **Backend**: Implement action handlers for each role (Seer, Robber, Troublemaker, Drunk, Insomniac)
+2. **Frontend**: Create role-specific night phase UIs for each player
+3. **Backend**: Track role swaps and send private results back to players
+4. **Frontend**: Remove voting UI, replace with "reveal roles" screen
+5. **Backend + Frontend**: Implement play again feature
 
-2. **Day 3-4**: Simplest possible Werewolf
-   - Assign random roles
-   - Show role to each player
-   - Skip night actions (just show roles)
-   - Vote → show results
-
-3. **Day 5**: Playtest with friends!
-   - Gather feedback
-   - Fix critical bugs
-   - Iterate on UX
+**🧪 Then: Playtest with 6-8 people!**
+- Test all night actions work correctly
+- Verify physical voting flows naturally
+- Check reconnection edge cases
+- Polish based on feedback
 
 ---
 
 ## 🏛️ Key Design Decisions
 
-### 1. Why Event Sourcing?
+### 1. Card Replacement, Not Full Digital Game
+This app **replaces physical cards**, not in-person interaction:
+- ✅ Role assignment and private viewing
+- ✅ Digital night actions (prevents cheating, tracks swaps)
+- ✅ Discussion timer
+- ❌ **NOT** digital voting - voting is physical (everyone points)
+- ❌ **NOT** automatic winner calculation - players determine this together
+
+### 2. Why Event Sourcing?
 - **Reconnection**: Replay events to rebuild state
-- **Spectators**: Subscribe to event stream
 - **Debugging**: Full audit trail
+- **Multiple games**: Easy to add game #2, #3, etc.
 - **Time travel**: Rewind/replay for undo features
 
-### 2. Why Server-Authoritative?
+### 3. Why Server-Authoritative?
 - **No cheating**: Server holds canonical state
 - **Security**: Clients can't see hidden info
 - **Consistency**: Single source of truth
 
-### 3. Why Game Abstraction?
+### 4. Why Game Abstraction?
 - **Extensibility**: Adding game #2 is easy
 - **Isolation**: Game-specific logic doesn't leak into core
 - **Testing**: Test games independently
 
-### 4. Why Anonymous-First?
+### 5. Why Anonymous-First?
 - **Instant play**: No signup friction
 - **Privacy**: Just display names
 - **Optional accounts**: Add later for stats
-
-### 5. Why Board View from Day 1?
-- **Future games need it**: Bohnanza, Avalon
-- **Better UX**: Shared screen for public state
-- **Spectators**: Easy to add
 
 ---
 
@@ -372,11 +384,19 @@ POST /api/rooms/:code/start
 
 ## 🐛 Known Issues / TODOs
 
+**Critical for MVP:**
+- [ ] Digital night actions not yet implemented (Seer, Robber, Troublemaker, Drunk, Insomniac)
+- [ ] Phone voting needs to be removed (use physical voting instead)
+- [ ] Play again feature not implemented
+- [ ] Host tracking uses first player instead of actual host
+- [ ] Reconnection handling not tested
+
+**Polish Items:**
+- [ ] QR code generation for room sharing
 - [ ] Session token security (use httpOnly cookies in production)
-- [ ] WebSocket authentication race condition handling
 - [ ] Mobile Safari PWA installation flow
+- [ ] Error boundaries and loading states
 - [ ] Accessibility (ARIA labels, keyboard nav)
-- [ ] Game config validation on frontend before sending
 - [ ] Proper error messages (not just console.error)
 
 ---

@@ -1,7 +1,7 @@
 # Cardless: Party Game Platform Architecture
 
 ## Vision
-Replace physical cards/boards with phones + optional shared screen for in-person multiplayer party games.
+Replace physical cards with phones for in-person multiplayer party games. The app handles role assignment, private information, and night actions while preserving the social, in-person nature of these games.
 
 ## Core Principles
 
@@ -45,27 +45,27 @@ type Game interface {
 3. Register in `games/registry.go`
 4. Done. Core infrastructure handles everything else.
 
-### 3. Multi-View Architecture
+### 3. Event-Driven Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
 │           Event Log (Source of Truth)       │
-│  [PlayerJoined, RoleAssigned, VoteCast...] │
+│  [PlayerJoined, RoleAssigned, NightAction...]│
 └─────────────────────────────────────────────┘
                       │
          ┌────────────┼────────────┐
          ▼            ▼            ▼
    ┌─────────┐  ┌─────────┐  ┌─────────┐
-   │ Phone 1 │  │ Phone 2 │  │  Board  │
-   │ (Alice) │  │  (Bob)  │  │  View   │
+   │ Phone 1 │  │ Phone 2 │  │ Phone 3 │
+   │ (Alice) │  │  (Bob)  │  │ (Carol) │
    └─────────┘  └─────────┘  └─────────┘
-     Private      Private      Public
+     Private      Private      Private
 ```
 
 **Views are derived from events:**
-- **Player view**: Filtered to what that player can see (their role, their hand)
-- **Board view**: Public game state (market, timers, votes)
-- **Spectator view**: Same as board, or full omniscient view
+- **Player view**: Filtered to what that player can see (their role, night action results)
+- Events can be public (everyone sees) or private (specific players only)
+- No board/spectator view for MVP - focus is on player experience
 
 ### 4. Server-Authoritative Design
 Clients **request actions**, server **validates and broadcasts results**.
@@ -373,33 +373,43 @@ Clients:
 ```
 [Night Phase UI]
     ↓
-Server broadcasts via WS:
-  - PhaseChanged { phase: "night", endsAt: "2024-01-15T12:34:56Z" }
-  - Timer starts on all clients
+Server broadcasts: PhaseChanged { phase: "night" }
     ↓
-Werewolves see prompt: "Wake up. Find each other."
-  - Server sends to Werewolves only: NightWakeup { role: "werewolf", otherWerewolves: ["Bob"] }
+Each role's phone shows their specific action UI:
+
+Werewolves:
+  - See list of other werewolves (or can view center card if alone)
     ↓
-Seer sees prompt: "Wake up. Choose a player to view."
-  - Server sends to Seer only: NightWakeup { role: "seer" }
-  - Seer taps on "Bob"
+Seer:
+  - Choose: view one player's role OR two center cards
+  - Taps a player or center cards
     ↓
 WS → Server: { type: "action", action: { type: "seer_view", targetID: "bob-uuid" } }
     ↓
-Server:
-  - game.ValidateAction(seerID, action)
-  - game.ProcessAction(seerID, action)
-  - Emits: SeerViewed { targetID, role: "villager" }
-  - Append to EventLog
+Server validates and processes:
+  - Checks Seer hasn't acted yet
+  - Records the view action
+  - Sends private result back to Seer
     ↓
-Server sends to Seer only:
-  - SeerViewed { targetID: "bob-uuid", role: "villager" }
+Seer sees: "Bob is a Villager" (private to seer only)
     ↓
-Seer sees: "Bob is a Villager"
+Robber:
+  - Chooses another player to swap with
+  - Server processes swap, updates roleAssignments
+  - Robber sees their NEW role
     ↓
-... (other roles act in sequence)
+Troublemaker:
+  - Chooses two OTHER players to swap
+  - Server swaps them (Troublemaker doesn't see what they swapped)
     ↓
-Night timer expires
+Drunk:
+  - Chooses a center card to swap with (forced action)
+  - Server swaps but Drunk doesn't see new role
+    ↓
+Insomniac:
+  - Automatically shown their FINAL role (after all swaps)
+    ↓
+Host manually advances when everyone is done
     ↓
 Server emits: PhaseChanged { phase: "day" }
 ```
@@ -410,36 +420,25 @@ Server emits: PhaseChanged { phase: "day" }
 [Day Phase UI]
     ↓
 All players see:
-  - Discussion timer (5 minutes)
-  - "Vote for who you think is a Werewolf"
+  - Discussion timer (optional, can start/pause/extend)
+  - "Discuss who you think is a Werewolf"
     ↓
 Players discuss in person (no in-game chat needed)
     ↓
-Alice taps "Vote for Bob"
+Timer ends (or host advances manually)
     ↓
-WS → Server: { type: "action", action: { type: "vote", targetID: "bob-uuid" } }
+Everyone votes PHYSICALLY by pointing at the same time (traditional ONUW)
     ↓
-Server:
-  - game.ValidateAction(aliceID, action)
-  - game.ProcessAction(aliceID, action)
-  - Emits: VoteCast { voterID: "alice-uuid", targetID: "bob-uuid" }
+Host or anyone taps "Reveal Roles"
     ↓
-Server broadcasts to all:
-  - VoteCast { voterID: "alice-uuid" } (targetID hidden until all vote)
+All players see their FINAL roles on their phones
+  (shows which swaps happened during night)
     ↓
-All clients see: "Alice has voted" (checkmark appears)
+Players determine winner together based on:
+  - Who got eliminated (physical vote)
+  - What their final roles were (shown on phones)
     ↓
-All players vote
-    ↓
-Server detects all votes in → emits:
-  - VotesRevealed { votes: { "alice": "bob", "bob": "alice", ... } }
-  - GameFinished
-    ↓
-Server broadcasts:
-  - VotesRevealed
-  - GameFinished { results: { winner: "werewolves", ... } }
-    ↓
-Clients transition to Results screen
+Host can tap "Play Again" to start new game with same players
 ```
 
 ### Flow 6: Reconnection
@@ -725,102 +724,92 @@ func (g *WerewolfGame) GetPublicState() PublicState {
 
 **Goal**: Play full game of One Night Werewolf
 
-**Backend:**
-- [ ] Game interface definition
-- [ ] Event sourcing infrastructure
-- [ ] Werewolf game implementation
-  - [ ] Role assignment
-  - [ ] Night phase (simple: just show roles, no actions yet)
-  - [ ] Day phase voting
-  - [ ] Results calculation
-- [ ] Start game endpoint
-- [ ] Action validation & processing
+**Completed:**
+- [x] Game interface definition
+- [x] Event sourcing infrastructure
+- [x] Werewolf game implementation (basic flow)
+- [x] Role assignment (players + 3 center cards)
+- [x] Start game endpoint
+- [x] Game state store (event-driven)
+- [x] Role reveal with acknowledgements
+- [x] Night phase with host narration
+- [x] Day phase with timer controls
+- [x] Results calculation logic
 
-**Frontend:**
-- [ ] Game state store (event-driven)
-- [ ] Role reveal animation
-- [ ] Night phase UI (show role, simple instructions)
-- [ ] Day phase voting UI (tap to vote)
-- [ ] Results screen (who won, role reveals)
-- [ ] Timer component
+**In Progress (Current Sprint):**
+- [ ] Digital night actions for each role:
+  - [ ] Werewolf: See other werewolves
+  - [ ] Seer: View player or center cards
+  - [ ] Robber: Swap and view new role
+  - [ ] Troublemaker: Swap two others
+  - [ ] Drunk: Swap with center (blind)
+  - [ ] Insomniac: View final role
+- [ ] Remove phone voting (use physical voting)
+- [ ] Role reveal screen (show final roles)
+- [ ] Play again feature
+- [ ] Fix host tracking
 
-**Success criteria**: Complete game from lobby → roles → voting → results
+**Success criteria**: Digital night actions work, physical voting flows naturally, can play multiple rounds
 
 ---
 
-### **Phase 3: Werewolf Polish (3-4 days)**
+### **Phase 3: Polish & Stability (3-4 days)**
 
-**Goal**: Night actions, reconnection, QR codes
+**Goal**: Stable, reconnection-proof Werewolf
 
 **Backend:**
 - [ ] Session token reconnection
 - [ ] Event replay for reconnecting clients
-- [ ] Night phase role actions (Seer, Robber, Troublemaker)
-- [ ] Phase auto-advancement with timers
+- [ ] Room expiry and cleanup
 
 **Frontend:**
 - [ ] QR code generation for room code
 - [ ] Reconnection handling (detect disconnect, auto-retry)
-- [ ] Role-specific night UIs (Seer view, Robber swap)
-- [ ] Animations & mobile polish (vibration, sounds)
-- [ ] "Play again" button (same players, new game)
+- [ ] Error boundaries and loading states
+- [ ] Mobile UI polish (better touch targets)
 
-**Success criteria**: Full-featured Werewolf, handles disconnects gracefully
-
----
-
-### **Phase 4: Board View (2-3 days)**
-
-**Goal**: Optional shared screen for spectators
-
-**Backend:**
-- [ ] Public state API
-- [ ] Board-specific WebSocket messages (no private info)
-
-**Frontend:**
-- [ ] `/room/:code/board` route
-- [ ] Board view component (game-agnostic)
-- [ ] Werewolf board (timer, phase, vote status)
-- [ ] QR code on board to join
-
-**Success criteria**: Can cast board view to TV, shows public game state
+**Success criteria**: Handles edge cases, reconnection works smoothly, ready for extended playtesting
 
 ---
 
-### **Phase 5: Second Game - Avalon (4-5 days)**
+### **Phase 4: Second Game - Avalon (4-5 days)**
 
 **Goal**: Validate architecture, prove it's multi-game
 
+**Before starting:**
+- [ ] Extract reusable patterns from Werewolf
+- [ ] Document game implementation guide
+- [ ] Identify what's game-specific vs platform-specific
+
 **Backend:**
 - [ ] Avalon game implementation
-- [ ] Quest voting
-- [ ] Team selection
+- [ ] Quest voting mechanics
+- [ ] Team selection logic
 - [ ] Merlin/Assassin reveal
 
 **Frontend:**
-- [ ] Avalon components
-- [ ] Mission board view (quest results)
+- [ ] Avalon-specific components
+- [ ] Quest tracking UI
 - [ ] Team selection UI
 
-**Success criteria**: Avalon works with minimal changes to core platform
+**Success criteria**: Avalon works with minimal changes to core platform, validates game abstraction
 
 ---
 
-### **Phase 6: Production Ready (3-4 days)**
+### **Phase 5: Production Ready (3-4 days)**
 
 **Backend:**
 - [ ] Redis store implementation
-- [ ] Docker deployment
-- [ ] Room expiry (auto-delete after 24h)
+- [ ] Docker deployment optimization
 - [ ] Rate limiting
+- [ ] Health monitoring
 
 **Frontend:**
-- [ ] Error boundaries
-- [ ] Loading states
-- [ ] Offline detection
 - [ ] PWA manifest (installable)
+- [ ] Performance optimization
+- [ ] Analytics (optional)
 
-**Success criteria**: Deploy to homelab, friends can play without bugs
+**Success criteria**: Deploy to homelab or cloud, stable for regular game nights
 
 ---
 
@@ -841,8 +830,8 @@ localStorage session token. No signup friction. Add accounts later for stats.
 ### 5. **Mobile-First = Touch Targets**
 Buttons min 44x44px. One-handed operation. Test on real phones early.
 
-### 6. **Board View = First-Class**
-Even if Werewolf barely uses it, Bohnanza/Avalon need it. Design it in from the start.
+### 6. **In-Person First**
+The app replaces cards, not in-person interaction. Physical voting and social deduction remain central to the experience.
 
 ---
 

@@ -3,11 +3,10 @@
 	import { api, type CreateRoomRequest } from '$lib/api/client';
 	import { session } from '$lib/stores/session';
 	import { Card, Button } from '$lib/components/ui';
-	import { ArrowLeft, Users } from 'lucide-svelte';
+	import { ArrowLeft } from 'lucide-svelte';
 
 	let displayName = '';
 	let selectedGame = 'werewolf';
-	let maxPlayers = 10;
 	let loading = false;
 	let error = '';
 
@@ -30,7 +29,7 @@
 			const request: CreateRoomRequest = {
 				gameType: selectedGame,
 				displayName: displayName.trim(),
-				maxPlayers
+				maxPlayers: 15
 			};
 
 			const response = await api.createRoom(request);
@@ -122,28 +121,6 @@
 							</label>
 						{/each}
 					</div>
-				</div>
-
-				<!-- Max players -->
-				<div class="space-y-2">
-					<div class="flex items-center justify-between">
-						<label for="maxPlayers" class="text-sm font-medium">
-							Max Players
-						</label>
-						<div class="flex items-center gap-2">
-							<Users class="w-4 h-4 text-muted-foreground" />
-							<span class="font-semibold">{maxPlayers}</span>
-						</div>
-					</div>
-					<input
-						id="maxPlayers"
-						type="range"
-						bind:value={maxPlayers}
-						min="3"
-						max="15"
-						class="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-						disabled={loading}
-					/>
 				</div>
 
 				<!-- Error message -->
