@@ -96,6 +96,7 @@
 	}
 
 	function handleRobberSwap(playerId: string) {
+		selectedPlayer = playerId;
 		wsStore.sendAction({
 			type: 'robber_swap',
 			payload: { targetId: playerId }
