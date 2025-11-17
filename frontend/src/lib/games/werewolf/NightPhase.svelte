@@ -5,6 +5,7 @@
 	import { gameStore } from '$lib/stores/game';
 	import { onMount } from 'svelte';
 	import CenterCardSelect from './CenterCardSelect.svelte';
+	import PlayerCardSelect from './PlayerCardSelect.svelte';
 
 	export let roomState: any;
 	export let wsStore: any;
@@ -341,35 +342,33 @@
 
 		{:else if myRole === 'robber'}
 			<Card class="p-6 bg-orange-500/10 border-orange-500/30">
-				<div class="flex items-center gap-3 mb-4">
-					<ArrowRightLeft class="w-6 h-6 text-orange-400" />
-					<div>
-						<h3 class="font-semibold text-lg">Robber</h3>
-						<p class="text-sm text-muted-foreground">Swap with another player and see your new role</p>
-					</div>
+				<div class="text-center mb-6">
+					<h3 class="text-2xl font-bold mb-2">🎭 Swap Cards</h3>
+					<p class="text-muted-foreground">Choose a player to swap roles with. You'll see your new role.</p>
 				</div>
 
 				{#if !hasActed}
-					<div class="space-y-2">
-						{#each otherPlayers as player}
-							<button
-								on:click={() => handleRobberSwap(player.id)}
-								class="w-full p-3 bg-muted hover:bg-primary/20 rounded-lg border-2 border-border hover:border-primary transition-all text-left"
-							>
-								Swap with {player.displayName}
-							</button>
-						{/each}
+					<div class="space-y-6">
+						<PlayerCardSelect
+							players={otherPlayers}
+							selectedPlayerId={selectedPlayer}
+							onSelect={handleRobberSwap}
+							currentPlayerEmoji="↔️"
+						/>
 					</div>
 				{:else if actionResult}
-					<div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-						<p class="font-medium">You swapped with {getPlayerName(actionResult.targetId)}</p>
-						<p class="text-lg mt-2">Your new role: <span class="capitalize font-bold">{actionResult.newRole}</span></p>
+					<div class="p-6 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
+						<p class="font-medium text-lg mb-3">✓ You swapped with {getPlayerName(actionResult.targetId)}</p>
+						<div class="text-center">
+							<p class="text-sm text-muted-foreground mb-2">Your new role:</p>
+							<p class="text-3xl font-bold capitalize">{actionResult.newRole}</p>
+						</div>
 					</div>
 				{/if}
 				<Button
 					on:click={() => actionVisible = false}
 					variant="outline"
-					class="w-full mt-4"
+					class="w-full mt-6"
 				>
 					Hide Action
 				</Button>

@@ -102,97 +102,47 @@
 		</div>
 	{/if}
 
-	<!-- Results header - only show if game has finished with winners -->
-	{#if hasGameFinished}
-		<Card class="p-6 {didIWin ? 'bg-gruvbox-green' : 'bg-gruvbox-red'} text-white border-0">
-			<div class="text-center space-y-3">
-				<div class="text-6xl">
-					{didIWin ? '🎉' : '😔'}
-				</div>
-				<div>
-					<h3 class="text-3xl font-bold mb-2">
-						{didIWin ? 'You Won!' : 'You Lost'}
-					</h3>
-					<p class="text-lg text-white/90">
-						{winReason}
-					</p>
-				</div>
+	<!-- Role reveal header -->
+	<Card class="p-6 bg-primary text-primary-foreground border-0">
+		<div class="text-center space-y-3">
+			<div class="text-6xl">🎭</div>
+			<div>
+				<h2 class="text-3xl font-bold mb-2">Final Roles Revealed</h2>
+				<p class="text-lg">
+					Here are everyone's final roles after all night actions
+				</p>
 			</div>
-		</Card>
-	{:else}
-		<!-- Role reveal header (no winners yet) -->
-		<Card class="p-6 bg-primary text-primary-foreground border-0">
-			<div class="text-center space-y-3">
-				<div class="text-6xl">🎭</div>
-				<div>
-					<h2 class="text-3xl font-bold mb-2">Role Reveal</h2>
-					<p class="text-lg">
-						Everyone's final roles are shown below. Determine the winner based on your physical votes!
-					</p>
-				</div>
-			</div>
-		</Card>
-	{/if}
+		</div>
+	</Card>
 
-	<!-- Eliminated players -->
-	{#if hasGameFinished && eliminated.length > 0}
-		<Card class="p-6 bg-gruvbox-red/10 border-gruvbox-red">
-			<div class="flex items-center gap-3 mb-4">
-				<Skull class="w-6 h-6 text-gruvbox-red-light" />
-				<h3 class="font-semibold text-lg">Eliminated</h3>
-			</div>
-			<div class="space-y-2">
-				{#each eliminated as playerId}
-					{@const player = gameResults?.finalState?.players?.find((p: any) => p.id === playerId)}
-					{@const role = allRoles[playerId]}
-					<div class="flex items-center justify-between p-3 bg-gruvbox-red/20 border border-gruvbox-red rounded-lg">
-						<div class="flex items-center gap-3">
-							<span class="text-2xl">{getRoleEmoji(role)}</span>
-							<div>
-								<p class="font-medium">{player?.displayName || 'Unknown'}</p>
-								<p class="text-sm text-muted-foreground capitalize">{role?.replace('_', ' ')}</p>
-							</div>
-						</div>
-						<Badge class="bg-gruvbox-red text-white">Eliminated</Badge>
-					</div>
-				{/each}
-			</div>
-		</Card>
-	{/if}
 
 	<!-- All roles revealed -->
 	{#if Object.keys(allRoles).length > 0}
 		<Card class="p-6 bg-card border-primary">
-			<div class="flex items-center gap-3 mb-4">
+			<div class="flex items-center gap-3 mb-6">
 				<Trophy class="w-6 h-6 text-primary" />
-				<h3 class="font-semibold text-lg">All Final Roles</h3>
+				<h3 class="font-semibold text-xl">Everyone's Final Roles</h3>
 			</div>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{#each Object.entries(allRoles) as [playerId, role]}
 					{@const player = roomState?.players?.find((p: any) => p.id === playerId)}
-					{@const isWinner = hasGameFinished && winners.includes(playerId)}
-					<div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg {isWinner ? 'ring-2 ring-gruvbox-green' : ''}">
-						<div class="flex items-center gap-3">
-							<span class="text-2xl">{getRoleEmoji(role)}</span>
-							<div>
-								<p class="font-medium">
+					{@const isMe = playerId === $session?.playerId}
+					<div class="p-4 bg-muted/50 rounded-xl border-2 {isMe ? 'border-primary' : 'border-transparent'}">
+						<div class="flex items-center gap-4">
+							<div class="text-5xl">
+								{getRoleEmoji(role)}
+							</div>
+							<div class="flex-1">
+								<p class="font-bold text-lg">
 									{player?.displayName || 'Unknown'}
-									{#if playerId === $session?.playerId}
-										<span class="text-xs text-muted-foreground">(You)</span>
+									{#if isMe}
+										<span class="text-sm text-primary">(You)</span>
 									{/if}
 								</p>
-								<p class="text-sm text-muted-foreground capitalize">{role?.replace('_', ' ')}</p>
+								<p class="text-2xl font-bold capitalize text-primary mt-1">
+									{role?.replace('_', ' ')}
+								</p>
 							</div>
-						</div>
-						<div class="flex flex-col items-end gap-1">
-							<Badge variant={getRoleBadgeVariant(role)} class="capitalize">
-								{role}
-							</Badge>
-							{#if isWinner}
-								<Badge class="bg-gruvbox-green text-white border-gruvbox-green">
-									Winner
-								</Badge>
-							{/if}
 						</div>
 					</div>
 				{/each}
@@ -205,30 +155,29 @@
 	{/if}
 
 	<!-- Play again button -->
-	<Card class="p-6">
-		<div class="space-y-4">
-			{#if !hasGameFinished}
-				<p class="text-sm text-center text-muted-foreground">
-					Discuss who won based on your physical votes and the roles revealed above!
+	{#if isHost}
+		<Card class="p-6 border-primary">
+			<div class="space-y-4">
+				<p class="text-center text-muted-foreground">
+					Now vote on who to eliminate (physically) and determine the winners!
 				</p>
-			{/if}
-			
-			{#if isHost}
 				<Button
-					class="w-full h-12 bg-primary hover:bg-primary/90"
+					class="w-full h-14 text-lg bg-primary hover:bg-primary/90"
 					on:click={handlePlayAgain}
 					disabled={isResetting}
 				>
-					{isResetting ? 'Resetting...' : '🎮 Play Again'}
+					{isResetting ? 'Setting up...' : '🎮 Play Again'}
 				</Button>
 				<p class="text-xs text-center text-muted-foreground">
 					Start a new game with the same players
 				</p>
-			{:else}
-				<p class="text-sm text-center text-muted-foreground">
-					Waiting for the host to start a new game...
-				</p>
-			{/if}
-		</div>
-	</Card>
+			</div>
+		</Card>
+	{:else}
+		<Card class="p-6">
+			<p class="text-center text-muted-foreground">
+				Waiting for the host to start a new game...
+			</p>
+		</Card>
+	{/if}
 </div>

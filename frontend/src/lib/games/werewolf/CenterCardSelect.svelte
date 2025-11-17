@@ -82,7 +82,7 @@
 		position: relative;
 		width: 120px;
 		height: 168px;
-		transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+		transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 		transform-style: preserve-3d;
 		cursor: pointer;
 	}
@@ -92,7 +92,8 @@
 	}
 
 	.center-card-container.selected {
-		transform: translateY(-8px);
+		transform: translateY(-8px) scale(1.05);
+		box-shadow: 0 8px 16px rgba(215, 153, 33, 0.3);
 	}
 
 	.center-card-container.flipped {
@@ -101,6 +102,10 @@
 
 	.center-card-container.flipped:hover {
 		transform: rotateY(180deg) translateY(-4px);
+	}
+	
+	.center-card-container.flipped.selected {
+		transform: rotateY(180deg) scale(1.05);
 	}
 
 	.card-face {

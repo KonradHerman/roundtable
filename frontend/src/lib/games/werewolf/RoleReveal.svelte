@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
 	import { Button, CardBack } from '$lib/components/ui';
 
 	export let role: string;
@@ -90,25 +89,27 @@
 
 	function handleReady() {
 		if (readyToAcknowledge && !acknowledged) {
-			cardFlipped = false;
 			onAcknowledge();
 		}
 	}
+
+	function handleUnready() {
+		if (acknowledged) {
+			// Can't unready after acknowledging
+			return;
+		}
+		cardFlipped = !cardFlipped;
+	}
 </script>
 
-<div
-	class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90"
-	in:fade={{ duration: 300 }}
-	out:fade={{ duration: 300 }}
->
-	<div class="w-full max-w-md space-y-6">
+<div class="w-full space-y-6">
 		<!-- Card Container -->
 		<div class="perspective-1000">
 			<div class="card-container {cardFlipped ? 'flipped' : ''}">
 				<!-- Card Back -->
 				<div class="card-face card-back">
 					<div class="game-card border-2 border-primary">
-						<CardBack width={280} height={392} variant="ornamental" />
+						<CardBack width={280} height={392} variant="simplified" />
 					</div>
 				</div>
 
@@ -144,7 +145,7 @@
 		<!-- Action Buttons -->
 		{#if !acknowledged}
 			<div class="space-y-3">
-				{#if !readyToAcknowledge}
+				{#if !cardFlipped}
 					<Button
 						on:click={handleShowRole}
 						class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
@@ -155,14 +156,23 @@
 						Tap to peek at your role card
 					</p>
 				{:else}
-					<Button
-						on:click={handleReady}
-						class="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-bold text-lg"
-					>
-						✓ Ready
-					</Button>
+					<div class="flex gap-3">
+						<Button
+							on:click={handleUnready}
+							variant="outline"
+							class="flex-1 h-14 bg-card hover:bg-muted text-foreground font-bold text-lg border-2"
+						>
+							↺ Look Again
+						</Button>
+						<Button
+							on:click={handleReady}
+							class="flex-1 h-14 bg-green-600 hover:bg-green-700 text-white font-bold text-lg"
+						>
+							✓ Ready
+						</Button>
+					</div>
 					<p class="text-sm text-white/75 text-center">
-						Click when you've memorized your role
+						Ready when you've memorized your role
 					</p>
 				{/if}
 			</div>
@@ -176,7 +186,6 @@
 				<p class="text-sm text-white/75">players ready</p>
 			</div>
 		{/if}
-	</div>
 </div>
 
 <style>
@@ -220,5 +229,6 @@
 		height: 392px;
 		border-radius: 12px;
 		box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+		overflow: hidden; /* Ensure rounded corners apply to content */
 	}
 </style>
