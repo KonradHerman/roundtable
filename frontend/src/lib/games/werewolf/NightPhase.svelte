@@ -74,6 +74,7 @@
 
 	// Role-specific action handlers
 	function handleWerewolfViewCenter(centerIndex: number) {
+		selectedCenterCard = centerIndex;
 		wsStore.sendAction({
 			type: 'werewolf_view_center',
 			payload: { centerIndex }
