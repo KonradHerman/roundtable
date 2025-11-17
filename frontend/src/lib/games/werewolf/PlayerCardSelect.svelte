@@ -9,6 +9,17 @@
 	function handleCardClick(playerId: string) {
 		onSelect(playerId);
 	}
+
+	function getInitial(displayName: string | undefined | null): string {
+		if (!displayName || displayName.length === 0) {
+			return '?';
+		}
+		return displayName[0].toUpperCase();
+	}
+
+	function getDisplayName(displayName: string | undefined | null): string {
+		return displayName || 'Unknown';
+	}
 </script>
 
 <div class="flex gap-4 justify-center flex-wrap">
@@ -27,14 +38,14 @@
 					<!-- Player initial overlay -->
 					<div class="absolute inset-0 flex items-center justify-center">
 						<div class="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl shadow-lg">
-							{player.displayName[0].toUpperCase()}
+							{getInitial(player.displayName)}
 						</div>
 					</div>
 				</div>
 				
 				<!-- Player name below card -->
 				<p class="mt-2 text-sm font-medium text-center truncate max-w-[100px]">
-					{player.displayName}
+					{getDisplayName(player.displayName)}
 				</p>
 			</div>
 		</button>
