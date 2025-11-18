@@ -126,6 +126,17 @@
 		}
 	}
 
+	async function handleResetGame() {
+		if (!$session) return;
+
+		try {
+			await api.resetGame(roomCode);
+		} catch (err: any) {
+			console.error('Failed to reset game:', err);
+			alert(err.message || 'Failed to reset game');
+		}
+	}
+
 	function generateDefaultRoles(playerCount: number): string[] {
 		// One Night Werewolf requires playerCount + 3 roles (3 go to center)
 		if (playerCount < 3) return [];
@@ -299,7 +310,7 @@
 				<h1 class="text-2xl font-bold mb-4">Game Finished</h1>
 				<p class="text-muted-foreground">Results will appear here...</p>
 				{#if isHost}
-					<Button class="w-full mt-6" on:click={() => window.location.reload()}>
+					<Button class="w-full mt-6" on:click={handleResetGame}>
 						Play Again
 					</Button>
 				{/if}

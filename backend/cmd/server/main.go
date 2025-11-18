@@ -162,6 +162,8 @@ func cleanupRoutine(ctx context.Context, store store.Store) {
 }
 
 // phaseCheckRoutine periodically checks if game phases should advance
+// TODO: Optimization - Use a priority queue (min-heap) for phase timeouts instead of O(N) polling.
+// Currently we iterate through all rooms every second, which won't scale to thousands of rooms.
 func phaseCheckRoutine(ctx context.Context, store store.Store, srv *server.Server) {
 	ticker := time.NewTicker(1 * time.Second) // Check every second
 	defer ticker.Stop()

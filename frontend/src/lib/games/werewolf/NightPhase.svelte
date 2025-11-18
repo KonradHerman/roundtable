@@ -489,22 +489,15 @@
 					<Users class="w-6 h-6 text-gray-400" />
 					<div>
 						<h3 class="font-semibold text-lg">Mason</h3>
-						<p class="text-sm text-muted-foreground">Find the other mason(s)</p>
+						<p class="text-sm text-muted-foreground">Wake up and look for other Masons.</p>
 					</div>
 				</div>
 
-				{#if otherMasons.length > 0}
-					<div class="space-y-2">
-						<p class="text-sm font-medium">Other mason(s):</p>
-						{#each otherMasons as masonId}
-							<div class="p-3 bg-gray-500/5 rounded-lg border border-gray-500/20">
-								<p class="font-medium">{getPlayerName(masonId)}</p>
-							</div>
-						{/each}
-					</div>
-				{:else}
-					<p class="text-muted-foreground">You are the only mason in the game.</p>
-				{/if}
+				<div class="text-center py-4">
+					<p class="text-lg">👀 Open your eyes!</p>
+					<p class="text-sm text-muted-foreground mt-2">Look around to find other players who are also Masons.</p>
+				</div>
+
 				<Button
 					on:click={() => actionVisible = false}
 					variant="outline"
@@ -514,7 +507,31 @@
 				</Button>
 			</Card>
 
-		{:else if myRole === 'villager' || myRole === 'tanner' || myRole === 'hunter' || myRole === 'insomniac' || myRole === 'minion'}
+		{:else if myRole === 'minion'}
+			<Card class="p-6 bg-yellow-900/10 border-yellow-900/30">
+				<div class="flex items-center gap-3 mb-4">
+					<Users class="w-6 h-6 text-yellow-700" />
+					<div>
+						<h3 class="font-semibold text-lg">Minion</h3>
+						<p class="text-sm text-muted-foreground">Wake up and look for Werewolves.</p>
+					</div>
+				</div>
+
+				<div class="text-center py-4">
+					<p class="text-lg">👀 Open your eyes!</p>
+					<p class="text-sm text-muted-foreground mt-2">Werewolves will stick their thumbs up so you can see them.</p>
+				</div>
+
+				<Button
+					on:click={() => actionVisible = false}
+					variant="outline"
+					class="w-full mt-4"
+				>
+					Hide Action
+				</Button>
+			</Card>
+
+		{:else if myRole === 'villager' || myRole === 'tanner' || myRole === 'hunter' || myRole === 'insomniac'}
 			<Card class="p-6">
 				<div class="text-center space-y-4">
 					<div class="text-6xl">😴</div>

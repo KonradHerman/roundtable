@@ -91,8 +91,8 @@ Hover: #cc241d with 90% opacity
 ## Typography
 
 ### Font Families
-- **Body**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif`
-- **Monospace** (for codes): `font-mono` (Tailwind's default monospace stack)
+- **Body**: `Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif`
+- **Monospace** (for codes): `JetBrains Mono, Consolas, 'Courier New', monospace`
 
 ### Font Sizes
 - **Large heading**: `text-5xl` (48px)
