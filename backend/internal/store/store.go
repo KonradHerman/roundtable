@@ -2,14 +2,15 @@ package store
 
 import (
 	"errors"
+	"time"
 
 	"github.com/yourusername/roundtable/internal/core"
 )
 
 var (
-	ErrRoomNotFound    = errors.New("room not found")
-	ErrRoomExists      = errors.New("room already exists")
-	ErrPlayerNotFound  = errors.New("player not found")
+	ErrRoomNotFound   = errors.New("room not found")
+	ErrRoomExists     = errors.New("room already exists")
+	ErrPlayerNotFound = errors.New("player not found")
 )
 
 // Store defines the interface for room persistence.
@@ -32,4 +33,10 @@ type Store interface {
 
 	// CleanupStaleRooms removes rooms that haven't been active recently.
 	CleanupStaleRooms() error
+
+	// UpdateRoomTimer updates the next phase time for a room.
+	UpdateRoomTimer(roomID string, t time.Time) error
+
+	// PopExpiredRooms retrieves and updates rooms that have reached their phase timeout.
+	PopExpiredRooms(until time.Time) ([]*core.Room, error)
 }

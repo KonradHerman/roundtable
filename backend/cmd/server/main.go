@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/rs/cors"
+
 	"github.com/yourusername/roundtable/internal/server"
 	"github.com/yourusername/roundtable/internal/store"
 )
@@ -48,8 +50,33 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	// CORS middleware (for development)
-	handler := corsMiddleware(mux)
+	// CORS middleware (rs/cors)
+	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "http://localhost:5173" // Dev default
+	}
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{allowedOrigin},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "X-Session-Token"},
+		AllowCredentials: true,
+		// Add Debug: true during dev if needed, but false for production
+		Debug: false,
+	})
+
+	// If wildcard is used (not recommended for production with credentials), adjust options
+	if allowedOrigin == "*" {
+		c = cors.New(cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+			AllowedHeaders: []string{"Content-Type", "X-Session-Token"},
+			// AllowCredentials cannot be true with AllowedOrigins: []string{"*"}
+			AllowCredentials: false,
+		})
+	}
+
+	handler := c.Handler(mux)
 
 	// HTTP server
 	port := os.Getenv("PORT")
@@ -102,45 +129,6 @@ func main() {
 	slog.Info("server stopped")
 }
 
-// corsMiddleware adds CORS headers with environment-based origin restrictions.
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
-		if allowedOrigin == "" {
-			allowedOrigin = "http://localhost:5173" // Dev default
-		}
-
-		origin := r.Header.Get("Origin")
-
-		// Check if origin is allowed and set appropriate CORS headers
-		if allowedOrigin == "*" {
-			// Wildcard: allow any origin
-			// Note: When using credentials, we must echo the specific origin, not "*"
-			// For now, we'll use "*" and note that credentials won't work with wildcard
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-Token")
-			// Cannot use credentials with "*", so we don't set Allow-Credentials
-		} else if origin == allowedOrigin {
-			// Specific origin match
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-Token")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-		} else if origin != "" {
-			// Origin provided but doesn't match - log warning and don't set CORS headers
-			slog.Warn("rejected CORS request", "origin", origin, "allowed", allowedOrigin)
-		}
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 // cleanupRoutine periodically cleans up stale rooms.
 func cleanupRoutine(ctx context.Context, store store.Store) {
 	ticker := time.NewTicker(1 * time.Hour)
@@ -162,10 +150,9 @@ func cleanupRoutine(ctx context.Context, store store.Store) {
 }
 
 // phaseCheckRoutine periodically checks if game phases should advance
-// TODO: Optimization - Use a priority queue (min-heap) for phase timeouts instead of O(N) polling.
-// Currently we iterate through all rooms every second, which won't scale to thousands of rooms.
+// Optimized: uses a priority queue (min-heap) via store.PopExpiredRooms to avoid O(N) polling.
 func phaseCheckRoutine(ctx context.Context, store store.Store, srv *server.Server) {
-	ticker := time.NewTicker(1 * time.Second) // Check every second
+	ticker := time.NewTicker(100 * time.Millisecond) // Check more frequently for better precision
 	defer ticker.Stop()
 
 	for {
@@ -174,30 +161,33 @@ func phaseCheckRoutine(ctx context.Context, store store.Store, srv *server.Serve
 			slog.Info("phase check routine shutting down")
 			return
 		case <-ticker.C:
-			rooms, err := store.ListRooms()
+			// Get rooms that have expired phases
+			rooms, err := store.PopExpiredRooms(time.Now())
 			if err != nil {
+				slog.Error("failed to pop expired rooms", "error", err)
 				continue
 			}
 
 			for _, room := range rooms {
-				// Only check rooms with active games
-				if room.Status != "playing" || room.Game == nil {
-					continue
-				}
-
-				// Check if phase should advance
-				events, err := room.Game.CheckPhaseTimeout()
+				// CheckAndAdvancePhase safely acquires the room's lock internally
+				events, shouldUpdate, nextPhaseTime, err := room.CheckAndAdvancePhase()
 				if err != nil {
 					slog.Error("phase check error", "roomID", room.ID, "error", err)
 					continue
 				}
 
 				// If there are events, broadcast them
+				// AppendEvents will acquire its own lock
 				if len(events) > 0 {
 					room.AppendEvents(events)
 					for _, event := range events {
 						srv.ConnectionManager().BroadcastEvent(room.ID, event)
 					}
+				}
+
+				// Update the timer for the next phase (if any)
+				if shouldUpdate && nextPhaseTime.After(time.Now()) {
+					store.UpdateRoomTimer(room.ID, nextPhaseTime)
 				}
 			}
 		}

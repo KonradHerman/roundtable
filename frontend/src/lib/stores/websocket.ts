@@ -13,6 +13,9 @@ export interface ClientMessage {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
+// Global status store for the UI
+export const globalConnectionStatus = writable<ConnectionStatus>('disconnected');
+
 interface WebSocketStore {
 	status: ConnectionStatus;
 	messages: ServerMessage[];
@@ -49,10 +52,15 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 	
 	const wsUrl = getWsUrl();
 
+	function updateStatus(status: ConnectionStatus, error: string | null = null) {
+		update((state) => ({ ...state, status, error }));
+		globalConnectionStatus.set(status);
+	}
+
 	function connect() {
 		if (!browser || !wsUrl) return;
 
-		update((state) => ({ ...state, status: 'connecting' }));
+		updateStatus('connecting');
 
 		ws = new WebSocket(wsUrl);
 
@@ -66,7 +74,7 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 				payload: { sessionToken }
 			});
 
-			update((state) => ({ ...state, status: 'connected', error: null }));
+			updateStatus('connected');
 		};
 
 		ws.onmessage = (event) => {
@@ -97,7 +105,7 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 				const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
 				reconnectAttempts++;
 
-				update((state) => ({ ...state, status: 'reconnecting' }));
+				updateStatus('reconnecting');
 
 				console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
 
@@ -105,7 +113,7 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 					connect();
 				}, delay);
 			} else {
-				update((state) => ({ ...state, status: 'disconnected' }));
+				updateStatus('disconnected');
 			}
 		};
 	}
@@ -121,7 +129,7 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 			ws = null;
 		}
 
-		update((state) => ({ ...state, status: 'disconnected' }));
+		updateStatus('disconnected');
 	}
 
 	function send(message: ClientMessage) {

@@ -160,7 +160,7 @@ npm run dev
 
 ## 🤝 Contributing
 
-This is your personal project, but if you want to collaborate:
+This is a personal project, but if you want to collaborate, or add a new game:
 
 1. Fork the repo
 2. Create a feature branch

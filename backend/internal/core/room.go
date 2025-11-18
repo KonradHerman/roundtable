@@ -31,6 +31,8 @@ type Room struct {
 
 	EventLog []GameEvent `json:"eventLog"` // Append-only event history
 	Game     Game        `json:"-"`        // Game-specific state machine
+
+	NextPhaseTime time.Time `json:"-"` // Time when the current phase ends (for priority queue)
 }
 
 // NewRoom creates a new room with a generated code.
@@ -362,4 +364,34 @@ func (r *Room) GetState() RoomState {
 		HostID:     r.HostID,
 		Players:    players,
 	}
+}
+
+// CheckAndAdvancePhase safely checks if the game phase should advance and returns events.
+// This method acquires the room's read lock internally.
+// Returns (events, shouldUpdateTimer, nextPhaseTime, error).
+func (r *Room) CheckAndAdvancePhase() ([]GameEvent, bool, time.Time, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// Only check rooms with active games
+	if r.Status != RoomStatusPlaying || r.Game == nil {
+		return nil, false, time.Time{}, nil
+	}
+
+	// Check if phase should advance
+	events, err := r.Game.CheckPhaseTimeout()
+	if err != nil {
+		return nil, false, time.Time{}, err
+	}
+
+	// Get the next phase time if available
+	var nextPhaseTime time.Time
+	shouldUpdate := false
+	phase := r.Game.GetPhase()
+	if phase.EndsAt != nil && !phase.EndsAt.IsZero() {
+		nextPhaseTime = *phase.EndsAt
+		shouldUpdate = true
+	}
+
+	return events, shouldUpdate, nextPhaseTime, nil
 }

@@ -1,12 +1,23 @@
 <script lang="ts">
 	import { CardBack, Button } from '$lib/components/ui';
 	
-	export let cards: number[] = [0, 1, 2];
-	export let selectedCards: number[] = [];
-	export let flippedCards: Record<number, string> = {}; // index -> role
-	export let maxSelection: number = 1;
-	export let onSelect: (index: number) => void;
-	export let mode: 'select' | 'reveal' = 'select'; // select for clickable, reveal for showing result
+	interface Props {
+		cards?: number[];
+		selectedCards?: number[];
+		flippedCards?: Record<number, string>;
+		maxSelection?: number;
+		onSelect: (index: number) => void;
+		mode?: 'select' | 'reveal';
+	}
+
+	let { 
+		cards = [0, 1, 2],
+		selectedCards = [],
+		flippedCards = {},
+		maxSelection = 1,
+		onSelect,
+		mode = 'select'
+	} = $props<Props>();
 
 	function handleCardClick(index: number) {
 		if (mode === 'reveal') return;
@@ -39,7 +50,7 @@
 		{@const info = role ? getRoleInfo(role) : null}
 		
 		<button
-			on:click={() => handleCardClick(index)}
+			onclick={() => handleCardClick(index)}
 			class="perspective-1000"
 			disabled={mode === 'reveal'}
 		>

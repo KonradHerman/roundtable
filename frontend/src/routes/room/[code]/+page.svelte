@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { session } from '$lib/stores/session';
-	import { gameStore } from '$lib/stores/game';
+	import { gameStore } from '$lib/stores/game.svelte';
 	import { createWebSocket } from '$lib/stores/websocket';
 	import { api } from '$lib/api/client';
 	import { Card, Button, Badge } from '$lib/components/ui';
@@ -12,14 +11,15 @@
 
 	const roomCode = $page.params.code;
 
-	let wsStore: ReturnType<typeof createWebSocket> | null = null;
-	let connectionStatus: string = 'disconnected';
-	let roomState: any = null;
-	let previousStatus: string | null = null;
-	let gameState: any = null;
-	let copied = false;
+	let wsStore = $state<ReturnType<typeof createWebSocket> | null>(null);
+	let connectionStatus = $state<string>('disconnected');
+	let roomState = $state<any>(null);
+	let previousStatus = $state<string | null>(null);
+	let gameState = $state<any>(null);
+	let copied = $state(false);
+	let lastProcessedMessageIndex = $state<number>(0);
 
-	onMount(() => {
+	$effect(() => {
 		const currentSession = $session;
 
 		// Verify session exists for this room
@@ -35,11 +35,12 @@
 		const unsubscribe = wsStore.subscribe(($ws) => {
 			connectionStatus = $ws.status;
 
-			// Process messages
-			if ($ws.messages.length > 0) {
-				const latestMessage = $ws.messages[$ws.messages.length - 1];
-				handleMessage(latestMessage);
+			// Process only new messages
+			const messages = $ws.messages;
+			for (let i = lastProcessedMessageIndex; i < messages.length; i++) {
+				handleMessage(messages[i]);
 			}
+			lastProcessedMessageIndex = messages.length;
 		});
 
 		return () => {
@@ -177,9 +178,9 @@
 		}
 	}
 
-	$: isHost = $session?.playerId === roomState?.hostId;
-	$: playerCount = roomState?.players?.length || 0;
-	$: canStart = isHost && playerCount >= 3;
+	let isHost = $derived($session?.playerId === roomState?.hostId);
+	let playerCount = $derived(roomState?.players?.length || 0);
+	let canStart = $derived(isHost && playerCount >= 3);
 </script>
 
 <svelte:head>
@@ -221,7 +222,7 @@
 							{/if}
 						</div>
 						<button
-							on:click={copyRoomCode}
+							onclick={copyRoomCode}
 							class="group relative inline-flex items-center gap-3 px-6 py-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
 						>
 							<span class="text-5xl font-mono font-bold tracking-wider text-primary">
@@ -282,7 +283,7 @@
 							<Button
 								class="w-full h-14 text-lg"
 								disabled={!canStart}
-								on:click={handleStartGame}
+								onclick={handleStartGame}
 							>
 								Start Game
 							</Button>
@@ -310,7 +311,7 @@
 				<h1 class="text-2xl font-bold mb-4">Game Finished</h1>
 				<p class="text-muted-foreground">Results will appear here...</p>
 				{#if isHost}
-					<Button class="w-full mt-6" on:click={handleResetGame}>
+					<Button class="w-full mt-6" onclick={handleResetGame}>
 						Play Again
 					</Button>
 				{/if}

@@ -1,25 +1,35 @@
 <script lang="ts">
-	import { gameStore } from '$lib/stores/game';
+	import { gameStore } from '$lib/stores/game.svelte';
 	import { session } from '$lib/stores/session';
 	import { Card, Badge, Button } from '$lib/components/ui';
 	import { Trophy, Skull } from 'lucide-svelte';
 	import { confetti } from '@neoconfetti/svelte';
+	import { get } from 'svelte/store';
 
-	export let roomState: any;
-	
 	import { api } from '$lib/api/client';
-	
-	let gameResults: any = null;
-	let allRoles: Record<string, string> = {};
-	let eliminated: string[] = [];
-	let winners: string[] = [];
-	let winReason: string = '';
-	let showConfetti = false;
-	let hasGameFinished = false;
 
-	// Subscribe to game events
-	let unsubscribe = gameStore.subscribe(($game) => {
-		$game.events.forEach(event => {
+	interface Props {
+		roomState: any;
+	}
+
+	let { roomState } = $props<Props>();
+
+	let gameResults = $state<any>(null);
+	let allRoles = $state<Record<string, string>>({});
+	let eliminated = $state<string[]>([]);
+	let winners = $state<string[]>([]);
+	let winReason = $state<string>('');
+	let showConfetti = $state<boolean>(false);
+	let hasGameFinished = $state<boolean>(false);
+	let lastProcessedEventIndex = $state<number>(0);
+
+	// Process only new events
+	$effect(() => {
+		const events = gameStore.events;
+		const sessionPlayerId = get(session)?.playerId || '';
+		
+		for (let i = lastProcessedEventIndex; i < events.length; i++) {
+			const event = events[i];
 			if (event.type === 'roles_revealed') {
 				// Roles revealed for display (this is the main result screen)
 				allRoles = event.payload.roles || {};
@@ -39,13 +49,14 @@
 				}
 				eliminated = gameResults.finalState?.eliminated || [];
 
-				// Show confetti if we won
-				if (winners.includes($session?.playerId || '')) {
+				// Show confetti if we won (only once per game_finished event)
+				if (winners.includes(sessionPlayerId)) {
 					showConfetti = true;
 					setTimeout(() => showConfetti = false, 5000);
 				}
 			}
-		});
+		}
+		lastProcessedEventIndex = events.length;
 	});
 
 	function getRoleBadgeVariant(role: string): 'default' | 'destructive' | 'secondary' {
@@ -70,11 +81,11 @@
 		return emojis[role] || '❓';
 	}
 
-	$: didIWin = winners.includes($session?.playerId || '');
-	$: wasIEliminated = eliminated.includes($session?.playerId || '');
-	$: isHost = $session?.playerId === roomState?.hostId;
+	let didIWin = $derived(winners.includes($session?.playerId || ''));
+	let wasIEliminated = $derived(eliminated.includes($session?.playerId || ''));
+	let isHost = $derived($session?.playerId === roomState?.hostId);
 	
-	let isResetting = false;
+	let isResetting = $state(false);
 	
 	async function handlePlayAgain() {
 		if (!roomState?.id) return;
@@ -124,9 +135,9 @@
 				<h3 class="font-semibold text-xl">Everyone's Final Roles</h3>
 			</div>
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-				{#each Object.entries(allRoles) as [playerId, role]}
-					{@const player = roomState?.players?.find((p: any) => p.id === playerId)}
-					{@const isMe = playerId === $session?.playerId}
+			{#each Object.entries(allRoles) as [playerId, role]}
+				{@const player = roomState?.players?.find((p: any) => p.id === playerId)}
+				{@const isMe = playerId === $session?.playerId}
 					<div class="p-4 bg-muted/50 rounded-xl border-2 {isMe ? 'border-primary' : 'border-transparent'}">
 						<div class="flex items-center gap-4">
 							<div class="text-5xl">
@@ -163,7 +174,7 @@
 				</p>
 				<Button
 					class="w-full h-14 text-lg bg-primary hover:bg-primary/90"
-					on:click={handlePlayAgain}
+					onclick={handlePlayAgain}
 					disabled={isResetting}
 				>
 					{isResetting ? 'Setting up...' : '🎮 Play Again'}

@@ -2,34 +2,41 @@
 	import { Card, Button, Badge } from '$lib/components/ui';
 	import { Moon, ChevronDown, ChevronUp, Eye, Users, ArrowRightLeft } from 'lucide-svelte';
 	import { session } from '$lib/stores/session';
-	import { gameStore } from '$lib/stores/game';
-	import { onMount } from 'svelte';
+	import { gameStore } from '$lib/stores/game.svelte';
+	import { get } from 'svelte/store';
 	import CenterCardSelect from './CenterCardSelect.svelte';
 	import PlayerCardSelect from './PlayerCardSelect.svelte';
 
-	export let roomState: any;
-	export let wsStore: any;
-	export let nightScript: any[] = [];
+	interface Props {
+		roomState: any;
+		wsStore: any;
+		nightScript?: any[];
+	}
 
-	let scriptExpanded = false;
-	let actionVisible = false;
-	let checkedSteps: Record<number, boolean> = {};
+	let { roomState, wsStore, nightScript = [] } = $props<Props>();
+
+	let scriptExpanded = $state(false);
+	let actionVisible = $state(false);
+	let checkedSteps = $state<Record<number, boolean>>({});
 	
 	// Role-specific state
-	let myRole: string | null = null;
-	let otherWerewolves: string[] = [];
-	let otherMasons: string[] = [];
-	let selectedPlayer: string | null = null;
-	let selectedCenterCard: number | null = null;
-	let selectedCenterCards: number[] = [];
-	let selectedPlayer1: string | null = null;
-	let selectedPlayer2: string | null = null;
-	let actionResult: any = null;
-	let hasActed = false;
+	let myRole = $state<string | null>(null);
+	let otherWerewolves = $state<string[]>([]);
+	let otherMasons = $state<string[]>([]);
+	let selectedPlayer = $state<string | null>(null);
+	let selectedCenterCard = $state<number | null>(null);
+	let selectedCenterCards = $state<number[]>([]);
+	let selectedPlayer1 = $state<string | null>(null);
+	let selectedPlayer2 = $state<string | null>(null);
+	let actionResult = $state<any>(null);
+	let hasActed = $state(false);
+	let lastProcessedEventIndex = $state<number>(0);
 
-	// Subscribe to game events to get role-specific info
-	let unsubscribe = gameStore.subscribe(($game) => {
-		$game.events.forEach((event: any) => {
+	// Process only new events to get role-specific info
+	$effect(() => {
+		const events = gameStore.events;
+		for (let i = lastProcessedEventIndex; i < events.length; i++) {
+			const event = events[i];
 			if (event.type === 'role_assigned') {
 				myRole = event.payload.role;
 			} else if (event.type === 'werewolf_wakeup') {
@@ -55,13 +62,8 @@
 				actionResult = event.payload;
 				hasActed = true;
 			}
-		});
-	});
-
-	onMount(() => {
-		return () => {
-			if (unsubscribe) unsubscribe();
-		};
+		}
+		lastProcessedEventIndex = events.length;
 	});
 
 	function handleAdvanceToDay() {
@@ -122,8 +124,8 @@
 		return player?.displayName || 'Unknown';
 	}
 
-	$: isHost = $session?.playerId === roomState?.hostId;
-	$: otherPlayers = roomState?.players?.filter((p: any) => p.id !== $session?.playerId) || [];
+	let isHost = $derived($session?.playerId === roomState?.hostId);
+	let otherPlayers = $derived(roomState?.players?.filter((p: any) => p.id !== $session?.playerId) || []);
 </script>
 
 <div class="space-y-6">
@@ -131,7 +133,7 @@
 	{#if isHost}
 		{#if !scriptExpanded}
 			<Button
-				on:click={() => scriptExpanded = true}
+				onclick={() => scriptExpanded = true}
 				class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 			>
 				📜 Show Host Script
@@ -139,7 +141,7 @@
 		{:else}
 			<Card class="p-6 border-primary">
 				<button
-					on:click={() => scriptExpanded = false}
+					onclick={() => scriptExpanded = false}
 					class="w-full flex items-center justify-between mb-4"
 				>
 					<div class="flex items-center gap-2">
@@ -175,7 +177,7 @@
 
 					<div class="pt-4 border-t border-border">
 						<Button
-							on:click={handleAdvanceToDay}
+							onclick={handleAdvanceToDay}
 							class="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
 						>
 							Advance to Day Phase →
@@ -193,7 +195,7 @@
 	{#if !isHost || myRole}
 		{#if !actionVisible}
 			<Button
-				on:click={() => actionVisible = true}
+				onclick={() => actionVisible = true}
 				class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 			>
 				👁️ Show Night Action
@@ -245,7 +247,7 @@
 					</div>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -270,7 +272,7 @@
 							<div class="space-y-2">
 								{#each otherPlayers as player}
 									<button
-										on:click={() => handleSeerViewPlayer(player.id)}
+										onclick={() => handleSeerViewPlayer(player.id)}
 										class="w-full p-3 bg-muted hover:bg-primary/20 rounded-lg border-2 border-border hover:border-primary transition-all text-left"
 									>
 										{player.displayName}
@@ -306,7 +308,7 @@
 						/>
 						{#if selectedCenterCards.length === 2}
 							<Button
-								on:click={() => handleSeerViewCenter(selectedCenterCards)}
+								onclick={() => handleSeerViewCenter(selectedCenterCards)}
 								class="w-full mt-4"
 							>
 								View Selected Cards
@@ -334,7 +336,7 @@
 					{/if}
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -368,7 +370,7 @@
 					</div>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-6"
 				>
@@ -393,7 +395,7 @@
 							<div class="space-y-2">
 								{#each otherPlayers as player}
 									<button
-										on:click={() => selectedPlayer1 = player.id}
+										onclick={() => selectedPlayer1 = player.id}
 										class="w-full p-3 rounded-lg border-2 transition-all text-left {selectedPlayer1 === player.id ? 'bg-primary/20 border-primary' : 'bg-muted border-border hover:border-primary/50'}"
 									>
 										{player.displayName}
@@ -408,7 +410,7 @@
 								<div class="space-y-2">
 									{#each otherPlayers.filter((p: any) => p.id !== selectedPlayer1) as player}
 										<button
-											on:click={() => selectedPlayer2 = player.id}
+											onclick={() => selectedPlayer2 = player.id}
 											class="w-full p-3 rounded-lg border-2 transition-all text-left {selectedPlayer2 === player.id ? 'bg-primary/20 border-primary' : 'bg-muted border-border hover:border-primary/50'}"
 										>
 											{player.displayName}
@@ -420,7 +422,7 @@
 
 						{#if selectedPlayer1 && selectedPlayer2}
 							<Button
-								on:click={() => {
+								onclick={() => {
 									if (selectedPlayer1 && selectedPlayer2) {
 										handleTroublemakerSwap(selectedPlayer1, selectedPlayer2);
 									}
@@ -438,7 +440,7 @@
 					</div>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -475,7 +477,7 @@
 				</div>
 			{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -499,7 +501,7 @@
 				</div>
 
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -523,7 +525,7 @@
 				</div>
 
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -551,7 +553,7 @@
 					</p>
 				</div>
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-6"
 				>
