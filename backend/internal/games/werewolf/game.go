@@ -1,10 +1,11 @@
 package werewolf
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"time"
 
 	"github.com/yourusername/roundtable/internal/core"
@@ -83,9 +84,7 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 	// Shuffle and assign roles
 	shuffledRoles := make([]RoleType, len(wConfig.Roles))
 	copy(shuffledRoles, wConfig.Roles)
-	rand.Shuffle(len(shuffledRoles), func(i, j int) {
-		shuffledRoles[i], shuffledRoles[j] = shuffledRoles[j], shuffledRoles[i]
-	})
+	secureShuffleRoles(shuffledRoles)
 
 	events := make([]core.GameEvent, 0)
 
@@ -696,4 +695,20 @@ func getPlayerIDs(players []*core.Player) []string {
 		ids[i] = player.ID
 	}
 	return ids
+}
+
+// secureShuffleRoles shuffles roles using cryptographically secure randomness.
+// This ensures role assignments are unpredictable and fair.
+func secureShuffleRoles(roles []RoleType) {
+	n := len(roles)
+	for i := n - 1; i > 0; i-- {
+		// Generate random index using crypto/rand
+		jBig, err := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
+		if err != nil {
+			// This should never happen with crypto/rand
+			panic(fmt.Sprintf("failed to generate random number: %v", err))
+		}
+		j := int(jBig.Int64())
+		roles[i], roles[j] = roles[j], roles[i]
+	}
 }

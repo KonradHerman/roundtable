@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -42,23 +42,31 @@ type Connection struct {
 
 // HandleConnection manages a WebSocket connection lifecycle.
 func (cm *ConnectionManager) HandleConnection(ctx context.Context, conn *websocket.Conn, roomCode string) {
+	// nhooyr.io/websocket uses context for timeouts, not SetReadLimit/SetReadDeadline
+	// The message size limit is handled by the library's default (32KB)
+	// For larger messages, the library will automatically stream them
+
+	// Set 10-second timeout for auth message
+	authCtx, authCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer authCancel()
+
 	// First, client must authenticate with session token
 	var authMsg ClientMessage
-	if err := wsjson.Read(ctx, conn, &authMsg); err != nil {
-		log.Printf("Failed to read auth message: %v", err)
+	if err := wsjson.Read(authCtx, conn, &authMsg); err != nil {
+		slog.Error("failed to read auth message", "error", err)
 		conn.Close(websocket.StatusPolicyViolation, "authentication required")
 		return
 	}
 
 	if authMsg.Type != ClientMsgAuthenticate {
-		log.Printf("Expected authenticate message, got: %s", authMsg.Type)
+		slog.Warn("expected authenticate message", "got", authMsg.Type)
 		conn.Close(websocket.StatusPolicyViolation, "authentication required")
 		return
 	}
 
 	var authPayload AuthenticatePayload
 	if err := json.Unmarshal(authMsg.Payload, &authPayload); err != nil {
-		log.Printf("Failed to parse auth payload: %v", err)
+		slog.Error("failed to parse auth payload", "error", err)
 		conn.Close(websocket.StatusPolicyViolation, "invalid authentication")
 		return
 	}
@@ -66,14 +74,14 @@ func (cm *ConnectionManager) HandleConnection(ctx context.Context, conn *websock
 	// Validate session token and get player
 	room, err := cm.store.GetRoom(roomCode)
 	if err != nil {
-		log.Printf("Room not found: %s", roomCode)
+		slog.Warn("room not found", "roomCode", roomCode)
 		conn.Close(websocket.StatusPolicyViolation, "room not found")
 		return
 	}
 
 	player, err := room.GetPlayerByToken(authPayload.SessionToken)
 	if err != nil {
-		log.Printf("Invalid session token for room %s", roomCode)
+		slog.Warn("invalid session token", "roomCode", roomCode)
 		conn.Close(websocket.StatusPolicyViolation, "invalid session token")
 		return
 	}
@@ -101,7 +109,11 @@ func (cm *ConnectionManager) HandleConnection(ctx context.Context, conn *websock
 	cm.connections[player.ID] = connection
 	cm.mu.Unlock()
 
-	log.Printf("Player %s (%s) connected to room %s", player.DisplayName, player.ID, roomCode)
+	slog.Info("player connected",
+		"playerName", player.DisplayName,
+		"playerID", player.ID,
+		"roomCode", roomCode,
+	)
 
 	// Send authenticated message with current state
 	authResponse, _ := NewAuthenticatedMessage(player.ID, room.GetState())
@@ -136,13 +148,19 @@ func (c *Connection) readPump(cm *ConnectionManager, room *core.Room) {
 	defer c.cancel()
 
 	for {
+		// Set 60-second timeout per message using context
+		readCtx, readCancel := context.WithTimeout(c.ctx, 60*time.Second)
+
 		var msg ClientMessage
-		if err := wsjson.Read(c.ctx, c.Conn, &msg); err != nil {
+		err := wsjson.Read(readCtx, c.Conn, &msg)
+		readCancel() // Always cancel to release resources
+
+		if err != nil {
 			if c.ctx.Err() != nil {
 				// Context cancelled, clean shutdown
 				return
 			}
-			log.Printf("Read error for player %s: %v", c.PlayerID, err)
+			slog.Error("read error", "playerID", c.PlayerID, "error", err)
 			return
 		}
 
@@ -164,7 +182,7 @@ func (c *Connection) writePump() {
 			cancel()
 
 			if err != nil {
-				log.Printf("Write error for player %s: %v", c.PlayerID, err)
+				slog.Error("write error", "playerID", c.PlayerID, "error", err)
 				return
 			}
 
@@ -175,7 +193,7 @@ func (c *Connection) writePump() {
 			cancel()
 
 			if err != nil {
-				log.Printf("Ping error for player %s: %v", c.PlayerID, err)
+				slog.Error("ping error", "playerID", c.PlayerID, "error", err)
 				return
 			}
 
@@ -229,7 +247,11 @@ func (cm *ConnectionManager) handleDisconnect(conn *Connection, room *core.Room)
 	player, _ := room.GetPlayer(conn.PlayerID)
 	if player != nil {
 		player.Disconnect()
-		log.Printf("Player %s (%s) disconnected from room %s", player.DisplayName, player.ID, room.ID)
+		slog.Info("player disconnected",
+			"playerName", player.DisplayName,
+			"playerID", player.ID,
+			"roomCode", room.ID,
+		)
 	}
 }
 
@@ -243,7 +265,7 @@ func (c *Connection) Close() {
 func (cm *ConnectionManager) BroadcastEvent(roomCode string, event core.GameEvent) {
 	room, err := cm.store.GetRoom(roomCode)
 	if err != nil {
-		log.Printf("Failed to get room %s: %v", roomCode, err)
+		slog.Error("failed to get room for broadcast", "roomCode", roomCode, "error", err)
 		return
 	}
 
@@ -265,7 +287,7 @@ func (cm *ConnectionManager) BroadcastEvent(roomCode string, event core.GameEven
 		select {
 		case conn.Send <- eventMsg:
 		default:
-			log.Printf("Failed to send event to player %s: channel full", player.ID)
+			slog.Warn("failed to send event", "playerID", player.ID, "reason", "channel full")
 		}
 	}
 }
@@ -274,7 +296,7 @@ func (cm *ConnectionManager) BroadcastEvent(roomCode string, event core.GameEven
 func (cm *ConnectionManager) BroadcastRoomState(roomCode string) {
 	room, err := cm.store.GetRoom(roomCode)
 	if err != nil {
-		log.Printf("Failed to get room %s: %v", roomCode, err)
+		slog.Error("failed to get room for state broadcast", "roomCode", roomCode, "error", err)
 		return
 	}
 
@@ -292,7 +314,7 @@ func (cm *ConnectionManager) BroadcastRoomState(roomCode string) {
 		select {
 		case conn.Send <- stateMsg:
 		default:
-			log.Printf("Failed to send room state to player %s: channel full", player.ID)
+			slog.Warn("failed to send room state", "playerID", player.ID, "reason", "channel full")
 		}
 	}
 }

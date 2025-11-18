@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"strings"
 
 	"nhooyr.io/websocket"
 
@@ -55,9 +57,12 @@ func (s *Server) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Limit request body to 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1*1024*1024)
+
 	var req CreateRoomRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Request too large or malformed", http.StatusBadRequest)
 		return
 	}
 
@@ -83,7 +88,7 @@ func (s *Server) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 
 	// Store room
 	if err := s.store.CreateRoom(room); err != nil {
-		log.Printf("Failed to create room: %v", err)
+		slog.Error("failed to create room", "error", err)
 		http.Error(w, "Failed to create room", http.StatusInternalServerError)
 		return
 	}
@@ -95,7 +100,12 @@ func (s *Server) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	})
 	room.AppendEvent(event)
 
-	log.Printf("Created room %s for game %s (host: %s)", roomCode, req.GameType, hostPlayer.DisplayName)
+	slog.Info("created room",
+		"roomCode", roomCode,
+		"gameType", req.GameType,
+		"hostName", hostPlayer.DisplayName,
+		"hostID", hostPlayer.ID,
+	)
 
 	// Return response
 	resp := CreateRoomResponse{
@@ -127,6 +137,9 @@ func (s *Server) HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Limit request body to 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1*1024*1024)
+
 	// Extract room code from URL path
 	// Expected format: /api/rooms/{code}/join
 	roomCode := r.PathValue("code")
@@ -137,7 +150,7 @@ func (s *Server) HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 
 	var req JoinRoomRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Request too large or malformed", http.StatusBadRequest)
 		return
 	}
 
@@ -173,7 +186,11 @@ func (s *Server) HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	s.connMgr.BroadcastEvent(roomCode, event)
 	s.connMgr.BroadcastRoomState(roomCode)
 
-	log.Printf("Player %s joined room %s", player.DisplayName, roomCode)
+	slog.Info("player joined room",
+		"playerName", player.DisplayName,
+		"playerID", player.ID,
+		"roomCode", roomCode,
+	)
 
 	// Return response
 	resp := JoinRoomResponse{
@@ -198,6 +215,9 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Limit request body to 1MB
+	r.Body = http.MaxBytesReader(w, r.Body, 1*1024*1024)
+
 	// Extract room code from URL path
 	roomCode := r.PathValue("code")
 	if roomCode == "" {
@@ -205,13 +225,9 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Extract player ID from auth header/token
-	// For now, we'll validate via request body or session
-	// This is simplified for MVP
-
 	var req StartGameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Request too large or malformed", http.StatusBadRequest)
 		return
 	}
 
@@ -237,7 +253,7 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the current event log length before starting
-	eventLogLengthBefore := len(room.EventLog)
+	eventLogLengthBefore := room.GetEventLogLength()
 
 	// Start game
 	if err := room.StartGame(game, config); err != nil {
@@ -246,12 +262,12 @@ func (s *Server) HandleStartGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast all new events that were created during game start
-	newEvents := room.EventLog[eventLogLengthBefore:]
+	newEvents := room.GetEventsSince(eventLogLengthBefore)
 	for _, event := range newEvents {
 		s.connMgr.BroadcastEvent(roomCode, event)
 	}
 
-	log.Printf("Game started in room %s", roomCode)
+	slog.Info("game started", "roomCode", roomCode, "gameType", room.GameType)
 
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")
@@ -289,7 +305,7 @@ func (s *Server) HandleResetGame(w http.ResponseWriter, r *http.Request) {
 	// Broadcast updated room state to all players
 	s.connMgr.BroadcastRoomState(roomCode)
 
-	log.Printf("Room %s reset for new game", roomCode)
+	slog.Info("room reset for new game", "roomCode", roomCode)
 
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")
@@ -312,12 +328,15 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Upgrade connection
+	// Get allowed origins from environment
+	allowedOrigins := getWebSocketOrigins()
+
+	// Upgrade connection with origin restrictions
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"*"}, // TODO: Restrict in production
+		OriginPatterns: allowedOrigins,
 	})
 	if err != nil {
-		log.Printf("Failed to upgrade WebSocket: %v", err)
+		slog.Error("failed to upgrade WebSocket", "error", err, "remoteAddr", r.RemoteAddr)
 		return
 	}
 
@@ -346,4 +365,22 @@ func (s *Server) HandleGetRoom(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(room.GetState())
+}
+
+// getWebSocketOrigins returns allowed WebSocket origin patterns from environment.
+func getWebSocketOrigins() []string {
+	originsEnv := os.Getenv("ALLOWED_ORIGINS")
+	if originsEnv == "" {
+		// Dev default - allow localhost on any port
+		return []string{"localhost:*", "127.0.0.1:*"}
+	}
+	
+	// Split comma-separated origins
+	origins := strings.Split(originsEnv, ",")
+	// Trim whitespace from each origin
+	for i, origin := range origins {
+		origins[i] = strings.TrimSpace(origin)
+	}
+	
+	return origins
 }

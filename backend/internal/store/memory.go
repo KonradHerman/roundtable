@@ -99,22 +99,17 @@ func (s *MemoryStore) CleanupStaleRooms() error {
 	toDelete := make([]string, 0)
 
 	for roomCode, room := range s.rooms {
+		// Get room info safely with internal locking
+		status, createdAt, anyConnected := room.GetCleanupInfo()
+		
 		// Delete finished rooms older than 1 hour
-		if room.Status == core.RoomStatusFinished && time.Since(room.CreatedAt) > 1*time.Hour {
+		if status == core.RoomStatusFinished && time.Since(createdAt) > 1*time.Hour {
 			toDelete = append(toDelete, roomCode)
 			continue
 		}
 
 		// Delete rooms with no connected players older than staleTimeout
-		allDisconnected := true
-		for _, player := range room.Players {
-			if player.Connected {
-				allDisconnected = false
-				break
-			}
-		}
-
-		if allDisconnected && time.Since(room.CreatedAt) > staleTimeout {
+		if !anyConnected && time.Since(createdAt) > staleTimeout {
 			toDelete = append(toDelete, roomCode)
 		}
 	}

@@ -273,6 +273,58 @@ func (r *Room) ProcessAction(playerID string, action Action) ([]GameEvent, error
 	return events, nil
 }
 
+// GetEventLogLength returns the current event log length safely.
+func (r *Room) GetEventLogLength() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.EventLog)
+}
+
+// GetEventsSince returns events from a given index safely.
+func (r *Room) GetEventsSince(startIndex int) []GameEvent {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if startIndex >= len(r.EventLog) {
+		return nil
+	}
+
+	// Copy events to avoid races
+	events := make([]GameEvent, len(r.EventLog)-startIndex)
+	copy(events, r.EventLog[startIndex:])
+	return events
+}
+
+// IsAnyPlayerConnected safely checks if any player is connected.
+func (r *Room) IsAnyPlayerConnected() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, player := range r.Players {
+		if player.IsConnected() {
+			return true
+		}
+	}
+	return false
+}
+
+// GetCleanupInfo returns information needed for cleanup decisions.
+// Returns: status, createdAt, anyConnected
+func (r *Room) GetCleanupInfo() (RoomStatus, time.Time, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	anyConnected := false
+	for _, player := range r.Players {
+		if player.IsConnected() {
+			anyConnected = true
+			break
+		}
+	}
+
+	return r.Status, r.CreatedAt, anyConnected
+}
+
 // RoomState is a snapshot of room state for client consumption.
 type RoomState struct {
 	ID         string     `json:"id"`
@@ -290,10 +342,16 @@ func (r *Room) GetState() RoomState {
 
 	players := make([]*Player, 0, len(r.Players))
 	for _, player := range r.Players {
-		// Don't send session tokens to clients
-		playerCopy := *player
-		playerCopy.SessionToken = ""
-		players = append(players, &playerCopy)
+		// Create a safe copy without mutex and session token
+		// Use safe accessors for fields protected by player's mutex
+		playerCopy := &Player{
+			ID:          player.ID,
+			DisplayName: player.DisplayName,
+			Connected:   player.IsConnected(),
+			JoinedAt:    player.JoinedAt,
+			LastSeenAt:  player.GetLastSeenAt(),
+		}
+		players = append(players, playerCopy)
 	}
 
 	return RoomState{
