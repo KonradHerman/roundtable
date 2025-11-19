@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/KonradHerman/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/games/avalon"
 	"github.com/KonradHerman/roundtable/internal/games/werewolf"
 )
 
@@ -30,7 +31,8 @@ func NewRegistry() *Registry {
 
 	// Register games
 	r.Register("werewolf", werewolf.NewGame, werewolf.ParseConfig)
-	// Future: r.Register("avalon", avalon.NewGame, avalon.ParseConfig)
+	r.Register("avalon", avalon.NewGame, avalon.ParseConfig)
+	// Future: r.Register("spyfall", spyfall.NewGame, spyfall.ParseConfig)
 	// Future: r.Register("bohnanza", bohnanza.NewGame, bohnanza.ParseConfig)
 
 	return r
