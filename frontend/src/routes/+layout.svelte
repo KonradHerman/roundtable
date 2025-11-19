@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import { page } from '$app/stores';
 	import { globalConnectionStatus } from '$lib/stores/websocket';
 	import { fade } from 'svelte/transition';
 	import { WifiOff, Loader2 } from 'lucide-svelte';
@@ -9,22 +10,18 @@
 		children: Snippet;
 	}
 
-	let { children } = $props<Props>();
+	let { children }: Props = $props();
 
-	let status = $state('disconnected');
+	// Use $derived to properly subscribe to the store in Svelte 5
+	let status = $derived($globalConnectionStatus);
 
-	// Subscribe to the store manually since we're using runes
-	$effect(() => {
-		const unsubscribe = globalConnectionStatus.subscribe(s => {
-			status = s;
-		});
-		return unsubscribe;
-	});
+	// Only show connection status when in a room
+	let isInRoom = $derived($page.url.pathname.startsWith('/room/'));
 </script>
 
 <div class="min-h-screen relative">
-	{#if status === 'reconnecting' || status === 'disconnected'}
-		<div 
+	{#if isInRoom && (status === 'reconnecting' || status === 'disconnected')}
+		<div
 			transition:fade
 			class="fixed top-0 left-0 right-0 z-50 p-2 text-center text-white font-medium flex items-center justify-center gap-2 {status === 'reconnecting' ? 'bg-yellow-500' : 'bg-red-500'}"
 		>
@@ -37,6 +34,6 @@
 			{/if}
 		</div>
 	{/if}
-	
+
 	{@render children()}
 </div>
