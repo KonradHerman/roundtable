@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/yourusername/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/core"
 )
 
 // Phase represents the current game phase.

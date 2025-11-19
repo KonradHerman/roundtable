@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 
-	"github.com/yourusername/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/core"
 )
 
 // ClientMessage represents messages sent from client to server.
@@ -47,8 +47,8 @@ const (
 
 // AuthenticatedPayload confirms successful authentication.
 type AuthenticatedPayload struct {
-	PlayerID  string          `json:"playerId"`
-	RoomState core.RoomState  `json:"roomState"`
+	PlayerID  string         `json:"playerId"`
+	RoomState core.RoomState `json:"roomState"`
 }
 
 // RoomStatePayload contains current room state.

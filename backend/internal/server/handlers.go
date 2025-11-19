@@ -9,10 +9,10 @@ import (
 
 	"nhooyr.io/websocket"
 
-	"github.com/yourusername/roundtable/internal/core"
-	"github.com/yourusername/roundtable/internal/games"
-	"github.com/yourusername/roundtable/internal/store"
-	"github.com/yourusername/roundtable/internal/util"
+	"github.com/KonradHerman/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/games"
+	"github.com/KonradHerman/roundtable/internal/store"
+	"github.com/KonradHerman/roundtable/internal/util"
 )
 
 // Server holds the HTTP server and its dependencies.
@@ -374,13 +374,13 @@ func getWebSocketOrigins() []string {
 		// Dev default - allow localhost on any port
 		return []string{"localhost:*", "127.0.0.1:*"}
 	}
-	
+
 	// Split comma-separated origins
 	origins := strings.Split(originsEnv, ",")
 	// Trim whitespace from each origin
 	for i, origin := range origins {
 		origins[i] = strings.TrimSpace(origin)
 	}
-	
+
 	return origins
 }

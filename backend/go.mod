@@ -1,4 +1,4 @@
-module github.com/yourusername/roundtable
+module github.com/KonradHerman/roundtable
 
 go 1.22
 

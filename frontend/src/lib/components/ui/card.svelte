@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 
-	let className: string | undefined = undefined;
-	export { className as class };
+	let { class: className = undefined, children, ...restProps } = $props<{
+		class?: string;
+		children?: any;
+		[key: string]: any;
+	}>();
 </script>
 
 <div
 	class={cn('rounded-xl border bg-card text-card-foreground shadow-lg', className)}
-	{...$$restProps}
+	{...restProps}
 >
-	<slot />
+	{@render children?.()}
 </div>

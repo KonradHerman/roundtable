@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api, type CreateRoomRequest } from '$lib/api/client';
-	import { session } from '$lib/stores/session';
+	import { session } from '$lib/stores/session.svelte';
 	import { Card, Button } from '$lib/components/ui';
 	import { ArrowLeft } from 'lucide-svelte';
 

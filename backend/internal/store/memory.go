@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourusername/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/core"
 )
 
 // MemoryStore is an in-memory implementation of Store.

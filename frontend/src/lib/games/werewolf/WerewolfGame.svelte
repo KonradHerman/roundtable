@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { gameStore } from '$lib/stores/game';
-	import { session } from '$lib/stores/session';
+	import { gameStore } from '$lib/stores/game.svelte';
+	import { session } from '$lib/stores/session.svelte';
 	import { Card, Badge } from '$lib/components/ui';
 	import { Moon, Sun, Eye, Clock } from 'lucide-svelte';
 	import RoleReveal from './RoleReveal.svelte';
@@ -9,24 +8,24 @@
 	import DayPhase from './DayPhase.svelte';
 	import Results from './Results.svelte';
 
-	// eslint-disable-next-line no-unused-vars
-	export let roomCode: string;
-	export let roomState: any;
-	export let wsStore: any;
+	let { roomCode, roomState, wsStore } = $props<{
+		roomCode: string;
+		roomState: any;
+		wsStore: any;
+	}>();
 
-	let myRole: string | null = null;
-	let currentPhase: string = 'setup';
-	let phaseEndsAt: Date | null = null;
-	let acknowledged: boolean = false;
-	let acknowledgementsCount: number = 0;
-	let totalPlayers: number = 0;
-	let nightScript: any[] = [];
-	let timerActive: boolean = false;
+	let myRole = $state<string | null>(null);
+	let currentPhase = $state<string>('setup');
+	let phaseEndsAt = $state<Date | null>(null);
+	let acknowledged = $state<boolean>(false);
+	let acknowledgementsCount = $state<number>(0);
+	let totalPlayers = $state<number>(0);
+	let nightScript = $state<any[]>([]);
+	let timerActive = $state<boolean>(false);
 
-	// Subscribe to game events
-	let unsubscribe = gameStore.subscribe(($game) => {
-		// Process events to update local state
-		$game.events.forEach(event => {
+	// Reactive effect to process game events
+	$effect(() => {
+		gameStore.events.forEach(event => {
 			if (event.type === 'role_assigned') {
 				myRole = event.payload.role;
 			} else if (event.type === 'phase_changed') {
@@ -37,7 +36,7 @@
 			} else if (event.type === 'role_acknowledged') {
 				acknowledgementsCount = event.payload.count;
 				totalPlayers = event.payload.total;
-				if (event.payload.playerId === $session?.playerId) {
+				if (event.payload.playerId === session.value?.playerId) {
 					acknowledged = true;
 				}
 			} else if (event.type === 'night_script') {
@@ -53,12 +52,6 @@
 		});
 	});
 
-	onMount(() => {
-		return () => {
-			if (unsubscribe) unsubscribe();
-		};
-	});
-
 	function handleAcknowledgeRole() {
 		if (!wsStore || acknowledged) return;
 
@@ -68,8 +61,8 @@
 		});
 	}
 
-	$: phaseIcon = currentPhase === 'night' ? Moon : currentPhase === 'day' ? Sun : currentPhase === 'role_reveal' ? Eye : Clock;
-	$: phaseColor = currentPhase === 'night' ? 'bg-gruvbox-purple' : currentPhase === 'day' ? 'bg-gruvbox-yellow' : currentPhase === 'role_reveal' ? 'bg-gruvbox-blue' : 'bg-muted';
+	let phaseIcon = $derived(currentPhase === 'night' ? Moon : currentPhase === 'day' ? Sun : currentPhase === 'role_reveal' ? Eye : Clock);
+	let phaseColor = $derived(currentPhase === 'night' ? 'bg-gruvbox-purple' : currentPhase === 'day' ? 'bg-gruvbox-yellow' : currentPhase === 'role_reveal' ? 'bg-gruvbox-blue' : 'bg-muted');
 </script>
 
 <div class="space-y-6">
@@ -77,7 +70,7 @@
 	<Card class="p-6 {phaseColor} text-white border-0">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-3">
-				<svelte:component this={phaseIcon} class="w-8 h-8" />
+				<phaseIcon class="w-8 h-8"></phaseIcon>
 				<div>
 					<h2 class="text-2xl font-bold capitalize">
 						{currentPhase.replace('_', ' ')} Phase

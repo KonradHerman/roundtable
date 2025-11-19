@@ -3,7 +3,7 @@ package store
 import (
 	"errors"
 
-	"github.com/yourusername/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/core"
 )
 
 var (

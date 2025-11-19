@@ -11,8 +11,8 @@ import (
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 
-	"github.com/yourusername/roundtable/internal/core"
-	"github.com/yourusername/roundtable/internal/store"
+	"github.com/KonradHerman/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/store"
 )
 
 // ConnectionManager manages WebSocket connections for all rooms.

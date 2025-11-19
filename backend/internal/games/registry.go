@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/yourusername/roundtable/internal/core"
-	"github.com/yourusername/roundtable/internal/games/werewolf"
+	"github.com/KonradHerman/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/games/werewolf"
 )
 
 // GameFactory creates a new game instance.

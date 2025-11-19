@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/yourusername/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/core"
 )
 
 // AdvanceToNight transitions from role reveal to night phase after all players acknowledge.
@@ -75,7 +75,7 @@ func (g *Game) AdvanceToNight() ([]core.GameEvent, error) {
 		allRoles = append(allRoles, role)
 	}
 	allRoles = append(allRoles, g.centerCards...)
-	
+
 	script := GenerateNightScript(allRoles)
 
 	// Send script to host only

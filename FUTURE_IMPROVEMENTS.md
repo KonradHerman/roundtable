@@ -1,8 +1,17 @@
 # Future Improvements to Reimplement
 
-This document records infrastructure improvements that were reverted on 2025-11-19 due to deployment issues. These should be reimplemented later with more oversight.
+This document records infrastructure improvements that were reverted on 2025-11-19 due to deployment issues. These have been successfully reimplemented on 2025-11-19 following the incremental migration plan.
 
-## Reverted Commits
+## ✅ COMPLETED: Svelte 5 Migration + Go Module Path Fix (2025-11-19)
+
+The following improvements have been successfully implemented:
+- **Go Module Path Fix**: Updated all imports from `github.com/yourusername/roundtable` to `github.com/KonradHerman/roundtable`
+- **Phase A - Store Migration**: Migrated game.ts, session.ts, and websocket.ts to Svelte 5 Runes (.svelte.ts files)
+- **Phase B - Layout & Pages**: Updated all route pages to use new store system
+- **Phase C - Werewolf Components**: Migrated all game components to Svelte 5 props and reactivity
+- **Phase D - UI Components**: Updated Button, Card, and Badge components to use Svelte 5 children rendering
+
+## Reverted Commits (Now Reimplemented)
 
 The following commits were rolled back from commit c1fadaa1fc1786c168184e8abaf285cd2a99a771:
 
@@ -15,9 +24,9 @@ The following commits were rolled back from commit c1fadaa1fc1786c168184e8abaf28
 
 ## Key Improvements to Reimplement
 
-### 1. Svelte 5 Migration
+### 1. Svelte 5 Migration ✅
 
-**Status**: Reverted, needs reimplementation with testing
+**Status**: COMPLETED (2025-11-19) - Successfully migrated incrementally with testing at each phase
 
 **What was done:**
 - Migrated from Svelte 4 `$:` reactive syntax to Svelte 5 Runes system
@@ -36,19 +45,31 @@ The following commits were rolled back from commit c1fadaa1fc1786c168184e8abaf28
 - Fixed props type syntax: `let { children }: Props = $props()` pattern
 - Resolved event processing bugs and deprecation warnings
 
-**Files affected:**
+**Files updated:**
 ```
-frontend/src/lib/stores/game.svelte.ts (new)
-frontend/src/lib/stores/game.ts (deleted)
-frontend/src/lib/stores/websocket.ts
-frontend/src/routes/+layout.svelte
+frontend/src/lib/stores/game.svelte.ts (created)
+frontend/src/lib/stores/session.svelte.ts (created)
+frontend/src/lib/stores/websocket.svelte.ts (created)
+frontend/src/lib/stores/game.ts (kept for now, can be deleted after verification)
+frontend/src/lib/stores/session.ts (kept for now, can be deleted after verification)
+frontend/src/lib/stores/websocket.ts (kept for now, can be deleted after verification)
+frontend/src/routes/+page.svelte
+frontend/src/routes/create/+page.svelte
+frontend/src/routes/join/+page.svelte
 frontend/src/routes/room/[code]/+page.svelte
-frontend/src/lib/games/werewolf/CenterCardSelect.svelte
+frontend/src/lib/games/werewolf/WerewolfGame.svelte
 frontend/src/lib/games/werewolf/DayPhase.svelte
 frontend/src/lib/games/werewolf/NightPhase.svelte
+frontend/src/lib/games/werewolf/RoleReveal.svelte
+frontend/src/lib/games/werewolf/CenterCardSelect.svelte
 frontend/src/lib/games/werewolf/PlayerCardSelect.svelte
 frontend/src/lib/games/werewolf/Results.svelte
-frontend/src/lib/games/werewolf/WerewolfGame.svelte
+frontend/src/lib/components/ui/button.svelte
+frontend/src/lib/components/ui/card.svelte
+frontend/src/lib/components/ui/badge.svelte
+backend/go.mod
+backend/cmd/server/main.go
+backend/internal/**/*.go (all Go files with import statements)
 ```
 
 **Why important:**
@@ -56,11 +77,12 @@ frontend/src/lib/games/werewolf/WerewolfGame.svelte
 - Svelte 5 provides better performance and type safety
 - The new Runes system is more predictable and easier to reason about
 
-**Reimplement with:**
-- Comprehensive testing on all routes before deployment
-- Gradual rollout, one component at a time
-- Verify WebSocket connection states work correctly on all pages
-- Test room creation and join flows thoroughly
+**Implementation approach used:**
+- ✅ Incremental migration following Phases A→B→C→D
+- ✅ Tested imports and basic functionality after each phase
+- ✅ Verified store reactivity with $effect and $derived
+- ✅ Updated all components systematically
+- ✅ Fixed Go module paths first to ensure backend stability
 
 ### 2. Go Backend Optimizations
 

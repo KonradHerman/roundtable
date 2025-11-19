@@ -2,16 +2,18 @@
 	import { Button, CardBack } from '$lib/components/ui';
 	import { getRoleInfo } from './roleConfig';
 
-	export let role: string;
-	export let acknowledged: boolean = false;
-	export let acknowledgementsCount: number = 0;
-	export let totalPlayers: number = 0;
-	export let onAcknowledge: () => void;
+	let { role, acknowledged = false, acknowledgementsCount = 0, totalPlayers = 0, onAcknowledge } = $props<{
+		role: string;
+		acknowledged?: boolean;
+		acknowledgementsCount?: number;
+		totalPlayers?: number;
+		onAcknowledge: () => void;
+	}>();
 
-	let cardFlipped = false;
-	let readyToAcknowledge = false;
+	let cardFlipped = $state(false);
+	let readyToAcknowledge = $state(false);
 
-	$: info = getRoleInfo(role);
+	let info = $derived(getRoleInfo(role));
 
 	function handleShowRole() {
 		if (!cardFlipped) {

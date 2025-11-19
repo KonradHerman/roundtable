@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api, type JoinRoomRequest } from '$lib/api/client';
-	import { session } from '$lib/stores/session';
+	import { session } from '$lib/stores/session.svelte';
 
 	let joinCode = '';
 	let displayName = '';

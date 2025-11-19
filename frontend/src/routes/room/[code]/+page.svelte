@@ -2,9 +2,9 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { session } from '$lib/stores/session';
-	import { gameStore } from '$lib/stores/game';
-	import { createWebSocket } from '$lib/stores/websocket';
+	import { session } from '$lib/stores/session.svelte';
+	import { gameStore } from '$lib/stores/game.svelte';
+	import { createWebSocket } from '$lib/stores/websocket.svelte';
 	import { api } from '$lib/api/client';
 	import { Card, Button, Badge } from '$lib/components/ui';
 	import { Users, Copy, Check } from 'lucide-svelte';
@@ -12,15 +12,19 @@
 
 	const roomCode = $page.params.code;
 
-	let wsStore: ReturnType<typeof createWebSocket> | null = null;
-	let connectionStatus: string = 'disconnected';
-	let roomState: any = null;
-	let previousStatus: string | null = null;
-	let gameState: any = null;
-	let copied = false;
+	let wsStore = $state<ReturnType<typeof createWebSocket> | null>(null);
+	let connectionStatus = $state<string>('disconnected');
+	let roomState = $state<any>(null);
+	let previousStatus = $state<string | null>(null);
+	let copied = $state(false);
+
+	// Derived reactive values
+	let isHost = $derived(session.value?.playerId === roomState?.hostId);
+	let playerCount = $derived(roomState?.players?.length || 0);
+	let canStart = $derived(isHost && playerCount >= 3);
 
 	onMount(() => {
-		const currentSession = $session;
+		const currentSession = session.value;
 
 		// Verify session exists for this room
 		if (!currentSession || currentSession.roomCode !== roomCode) {
@@ -31,19 +35,23 @@
 		// Create WebSocket connection
 		wsStore = createWebSocket(roomCode, currentSession.sessionToken);
 
-		// Subscribe to WebSocket messages
-		const unsubscribe = wsStore.subscribe(($ws) => {
-			connectionStatus = $ws.status;
-
-			// Process messages
-			if ($ws.messages.length > 0) {
-				const latestMessage = $ws.messages[$ws.messages.length - 1];
-				handleMessage(latestMessage);
+		// Set up reactive effect to handle WebSocket status and messages
+		let lastMessageCount = 0;
+		
+		$effect(() => {
+			if (wsStore) {
+				connectionStatus = wsStore.status;
+				
+				// Process new messages
+				if (wsStore.messages.length > lastMessageCount) {
+					const latestMessage = wsStore.messages[wsStore.messages.length - 1];
+					handleMessage(latestMessage);
+					lastMessageCount = wsStore.messages.length;
+				}
 			}
 		});
 
 		return () => {
-			unsubscribe();
 			if (wsStore) {
 				wsStore.disconnect();
 			}
@@ -96,6 +104,7 @@
 	}
 
 	async function refreshRoomState() {
+		if (!roomCode) return;
 		try {
 			const state = await api.getRoomState(roomCode);
 			roomState = state;
@@ -106,7 +115,7 @@
 	}
 
 	async function handleStartGame() {
-		if (!$session) return;
+		if (!session.value || !roomCode) return;
 
 		try {
 			// Simple werewolf config with default roles
@@ -157,6 +166,7 @@
 	}
 
 	async function copyRoomCode() {
+		if (!roomCode) return;
 		try {
 			await navigator.clipboard.writeText(roomCode);
 			copied = true;
@@ -165,10 +175,6 @@
 			console.error('Failed to copy:', err);
 		}
 	}
-
-	$: isHost = $session?.playerId === roomState?.hostId;
-	$: playerCount = roomState?.players?.length || 0;
-	$: canStart = isHost && playerCount >= 3;
 </script>
 
 <svelte:head>
@@ -209,8 +215,8 @@
 								<Badge variant="default">Host</Badge>
 							{/if}
 						</div>
-						<button
-							on:click={copyRoomCode}
+					<button
+						onclick={copyRoomCode}
 							class="group relative inline-flex items-center gap-3 px-6 py-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
 						>
 							<span class="text-5xl font-mono font-bold tracking-wider text-primary">
@@ -283,14 +289,14 @@
 						</div>
 					{:else}
 						<div class="text-center py-4">
-							<p class="text-muted-foreground">
-								Waiting for {roomState.players?.find(p => p.id === roomState.hostId)?.displayName || 'host'} to start the game...
-							</p>
+						<p class="text-muted-foreground">
+							Waiting for {roomState.players?.find((p: any) => p.id === roomState.hostId)?.displayName || 'host'} to start the game...
+						</p>
 						</div>
 					{/if}
 				</Card>
 			</div>
-		{:else if roomState.status === 'playing'}
+		{:else if roomState.status === 'playing' && roomCode && wsStore}
 			<!-- Game view -->
 			<WerewolfGame {roomCode} {roomState} {wsStore} />
 		{:else if roomState.status === 'finished'}

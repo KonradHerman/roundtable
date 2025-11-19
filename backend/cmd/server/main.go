@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/yourusername/roundtable/internal/server"
-	"github.com/yourusername/roundtable/internal/store"
+	"github.com/KonradHerman/roundtable/internal/server"
+	"github.com/KonradHerman/roundtable/internal/store"
 )
 
 func main() {

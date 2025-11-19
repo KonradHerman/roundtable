@@ -1,16 +1,20 @@
 <script lang="ts">
-	import { session } from '$lib/stores/session';
+	import { session } from '$lib/stores/session.svelte';
 	import { Card, Button } from '$lib/components/ui';
 	import { Users, Clock, Play, Pause, Plus } from 'lucide-svelte';
 	import { onMount, onDestroy } from 'svelte';
 
-	export let roomState: any;
-	export let wsStore: any;
-	export let timerActive: boolean = false;
-	export let phaseEndsAt: Date | null = null;
+	let { roomState, wsStore, timerActive = false, phaseEndsAt = null } = $props<{
+		roomState: any;
+		wsStore: any;
+		timerActive?: boolean;
+		phaseEndsAt?: Date | null;
+	}>();
 
-	let timeRemaining: number = 0;
+	let timeRemaining = $state<number>(0);
 	let timerInterval: any = null;
+
+	let isHost = $derived(session.value?.playerId === roomState?.hostId);
 
 	// No voting events to track - voting is physical!
 
@@ -68,8 +72,6 @@
 			payload: {}
 		});
 	}
-
-	$: isHost = $session?.playerId === roomState?.hostId;
 </script>
 
 <div class="space-y-6">

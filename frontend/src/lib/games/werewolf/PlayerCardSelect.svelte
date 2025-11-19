@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { CardBack } from '$lib/components/ui';
 	
-	export let players: any[] = [];
-	export let selectedPlayerId: string | null = null;
-	export let onSelect: (playerId: string) => void;
-	export let currentPlayerEmoji: string = '🎭';
+	let { players = [], selectedPlayerId = null, onSelect, currentPlayerEmoji = '🎭' } = $props<{
+		players?: any[];
+		selectedPlayerId?: string | null;
+		onSelect: (playerId: string) => void;
+		currentPlayerEmoji?: string;
+	}>();
 
 	function handleCardClick(playerId: string) {
 		onSelect(playerId);
@@ -27,7 +29,7 @@
 		{@const isSelected = selectedPlayerId === player.id}
 		
 		<button
-			on:click={() => handleCardClick(player.id)}
+			onclick={() => handleCardClick(player.id)}
 			class="perspective-card"
 		>
 			<div class="player-card {isSelected ? 'selected' : ''}">

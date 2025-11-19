@@ -1,25 +1,30 @@
 <script lang="ts">
-	import { gameStore } from '$lib/stores/game';
-	import { session } from '$lib/stores/session';
+	import { gameStore } from '$lib/stores/game.svelte';
+	import { session } from '$lib/stores/session.svelte';
 	import { Card, Badge, Button } from '$lib/components/ui';
 	import { Trophy, Skull } from 'lucide-svelte';
 	import { confetti } from '@neoconfetti/svelte';
 	import { api } from '$lib/api/client';
 	import { getRoleInfo } from './roleConfig';
 
-	export let roomState: any;
+	let { roomState } = $props<{ roomState: any }>();
 	
-	let gameResults: any = null;
-	let allRoles: Record<string, string> = {};
-	let eliminated: string[] = [];
-	let winners: string[] = [];
-	let winReason: string = '';
-	let showConfetti = false;
-	let hasGameFinished = false;
+	let gameResults = $state<any>(null);
+	let allRoles = $state<Record<string, string>>({});
+	let eliminated = $state<string[]>([]);
+	let winners = $state<string[]>([]);
+	let winReason = $state<string>('');
+	let showConfetti = $state(false);
+	let hasGameFinished = $state(false);
+	let isResetting = $state(false);
 
-	// Subscribe to game events
-	let unsubscribe = gameStore.subscribe(($game) => {
-		$game.events.forEach(event => {
+	let didIWin = $derived(winners.includes(session.value?.playerId || ''));
+	let wasIEliminated = $derived(eliminated.includes(session.value?.playerId || ''));
+	let isHost = $derived(session.value?.playerId === roomState?.hostId);
+
+	// Reactive effect to process game events
+	$effect(() => {
+		gameStore.events.forEach(event => {
 			if (event.type === 'roles_revealed') {
 				// Roles revealed for display (this is the main result screen)
 				allRoles = event.payload.roles || event.payload || {};
@@ -40,7 +45,7 @@
 				eliminated = gameResults.finalState?.eliminated || [];
 
 				// Show confetti if we won
-				if (winners.includes($session?.playerId || '')) {
+				if (winners.includes(session.value?.playerId || '')) {
 					showConfetti = true;
 					setTimeout(() => showConfetti = false, 5000);
 				}
@@ -57,12 +62,6 @@
 	function getRoleEmoji(role: string): string {
 		return getRoleInfo(role).emoji;
 	}
-
-	$: didIWin = winners.includes($session?.playerId || '');
-	$: wasIEliminated = eliminated.includes($session?.playerId || '');
-	$: isHost = $session?.playerId === roomState?.hostId;
-	
-	let isResetting = false;
 	
 	async function handlePlayAgain() {
 		if (!roomState?.id) return;
@@ -114,7 +113,7 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{#each Object.entries(allRoles) as [playerId, role]}
 					{@const player = roomState?.players?.find((p: any) => p.id === playerId)}
-					{@const isMe = playerId === $session?.playerId}
+					{@const isMe = playerId === session.value?.playerId}
 					<div class="p-4 bg-muted/50 rounded-xl border-2 {isMe ? 'border-primary' : 'border-transparent'}">
 						<div class="flex items-center gap-4">
 							<div class="text-5xl">

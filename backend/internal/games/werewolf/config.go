@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/yourusername/roundtable/internal/core"
+	"github.com/KonradHerman/roundtable/internal/core"
 )
 
 // Config holds the configuration for a werewolf game.
@@ -65,17 +65,17 @@ func ParseConfig(data []byte) (core.GameConfig, error) {
 type RoleType string
 
 const (
-	RoleWerewolf      RoleType = "werewolf"
-	RoleSeer          RoleType = "seer"
-	RoleRobber        RoleType = "robber"
-	RoleTroublemaker  RoleType = "troublemaker"
-	RoleDrunk         RoleType = "drunk"
-	RoleInsomniac     RoleType = "insomniac"
-	RoleMason         RoleType = "mason"
-	RoleMinion        RoleType = "minion"
-	RoleHunter        RoleType = "hunter"
-	RoleTanner        RoleType = "tanner"
-	RoleVillager      RoleType = "villager"
+	RoleWerewolf     RoleType = "werewolf"
+	RoleSeer         RoleType = "seer"
+	RoleRobber       RoleType = "robber"
+	RoleTroublemaker RoleType = "troublemaker"
+	RoleDrunk        RoleType = "drunk"
+	RoleInsomniac    RoleType = "insomniac"
+	RoleMason        RoleType = "mason"
+	RoleMinion       RoleType = "minion"
+	RoleHunter       RoleType = "hunter"
+	RoleTanner       RoleType = "tanner"
+	RoleVillager     RoleType = "villager"
 )
 
 // IsWerewolfTeam returns true if this role is on the werewolf team.
