@@ -89,8 +89,9 @@ func (cm *ConnectionManager) HandleConnection(ctx context.Context, conn *websock
 	// Mark player as connected
 	player.Reconnect()
 
-	// Create connection context
-	connCtx, cancel := context.WithCancel(ctx)
+	// Create connection context detached from HTTP request context
+	// This prevents Railway's HTTP timeout from affecting the WebSocket connection
+	connCtx, cancel := context.WithCancel(context.Background())
 	connection := &Connection{
 		PlayerID: player.ID,
 		RoomCode: roomCode,
@@ -172,9 +173,9 @@ func (c *Connection) readPump(cm *ConnectionManager, room *core.Room) {
 
 // writePump sends messages to the WebSocket connection.
 func (c *Connection) writePump() {
-	// Use 15-second ping interval for Railway compatibility
-	// Railway may have aggressive connection timeouts
-	ticker := time.NewTicker(15 * time.Second)
+	// Use 10-second heartbeat interval for Railway compatibility
+	// Send application-level heartbeat messages which proxies recognize as activity
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -190,13 +191,15 @@ func (c *Connection) writePump() {
 			}
 
 		case <-ticker.C:
-			// Send ping to keep connection alive
+			// Send heartbeat message instead of WebSocket ping
+			// Railway's proxy recognizes data frames as activity
+			heartbeat, _ := NewHeartbeatMessage()
 			ctx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
-			err := c.Conn.Ping(ctx)
+			err := wsjson.Write(ctx, c.Conn, heartbeat)
 			cancel()
 
 			if err != nil {
-				slog.Info("ping failed, closing connection", "playerID", c.PlayerID, "error", err)
+				slog.Info("heartbeat failed, closing connection", "playerID", c.PlayerID, "error", err)
 				return
 			}
 

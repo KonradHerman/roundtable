@@ -80,6 +80,12 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 		ws.onmessage = (event) => {
 			try {
 				const message: ServerMessage = JSON.parse(event.data);
+
+				// Ignore heartbeat messages (keep-alive)
+				if (message.type === 'heartbeat') {
+					return;
+				}
+
 				console.log('WebSocket message:', message);
 
 				update((state) => ({

@@ -43,6 +43,7 @@ const (
 	ServerMsgEvents        = "events" // Batch for reconnection
 	ServerMsgError         = "error"
 	ServerMsgPong          = "pong"
+	ServerMsgHeartbeat     = "heartbeat" // Keep-alive for proxies
 )
 
 // AuthenticatedPayload confirms successful authentication.
@@ -118,4 +119,8 @@ func NewErrorMessage(errMsg string) (ServerMessage, error) {
 
 func NewPongMessage() (ServerMessage, error) {
 	return ServerMessage{Type: ServerMsgPong}, nil
+}
+
+func NewHeartbeatMessage() (ServerMessage, error) {
+	return ServerMessage{Type: ServerMsgHeartbeat}, nil
 }
