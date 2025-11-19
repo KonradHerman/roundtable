@@ -33,7 +33,7 @@
 				margin: 4
 			},
 			dotsOptions: {
-				type: 'rounded',
+				type: 'dots',
 				color: '#d79921', // primary golden yellow
 				gradient: {
 					type: 'linear',
@@ -82,69 +82,30 @@
 			console.error('Failed to copy:', err);
 		}
 	}
-
-	async function downloadQR() {
-		if (!qrCode) return;
-		qrCode.download({
-			name: `cardless-${roomCode}`,
-			extension: 'png'
-		});
-	}
 </script>
 
 <div class="space-y-4">
 	<!-- QR Code Display -->
-	<div class="relative">
-		<div
-			class="bg-card rounded-2xl shadow-xl p-6 flex items-center justify-center overflow-hidden border-2 border-border/50"
-		>
-			<div bind:this={qrContainer} class="rounded-xl overflow-hidden"></div>
-		</div>
-
-		<!-- Decorative corners for extra soft aesthetic -->
-		<div class="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-primary/20 rounded-tl-lg"></div>
-		<div class="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-primary/20 rounded-tr-lg"></div>
-		<div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-primary/20 rounded-bl-lg"></div>
-		<div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-primary/20 rounded-br-lg"></div>
+	<div
+		class="bg-card rounded-2xl shadow-xl p-6 flex items-center justify-center overflow-hidden border-2 border-border/50"
+	>
+		<div bind:this={qrContainer} class="rounded-xl overflow-hidden"></div>
 	</div>
 
-	<!-- Info text -->
+	<!-- Info text with click to copy -->
 	<div class="text-center space-y-2">
 		<p class="text-sm text-muted-foreground">Scan to join the game</p>
-		<p class="text-xs text-muted-foreground/60 font-mono break-all px-4">
-			{inviteUrl}
-		</p>
-	</div>
-
-	<!-- Actions -->
-	<div class="flex gap-2">
 		<button
 			type="button"
 			on:click={copyInviteLink}
-			class="btn btn-secondary flex-1 text-sm py-3 relative"
+			class="group relative text-xs font-mono break-all px-4 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
 		>
-			{#if showCopied}
-				<span class="flex items-center justify-center gap-2">
-					<span>✓</span>
-					<span>Copied!</span>
-				</span>
-			{:else}
-				<span class="flex items-center justify-center gap-2">
-					<span>🔗</span>
-					<span>Copy Link</span>
-				</span>
-			{/if}
-		</button>
-
-		<button
-			type="button"
-			on:click={downloadQR}
-			class="btn btn-secondary flex-1 text-sm py-3"
-		>
-			<span class="flex items-center justify-center gap-2">
-				<span>⬇️</span>
-				<span>Download</span>
+			<span class={showCopied ? 'text-primary' : 'text-muted-foreground/60'}>
+				{inviteUrl}
 			</span>
+			{#if showCopied}
+				<span class="ml-2 text-primary">✓ Copied</span>
+			{/if}
 		</button>
 	</div>
 </div>

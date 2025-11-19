@@ -7,9 +7,10 @@
 	import { createWebSocket } from '$lib/stores/websocket.svelte';
 	import { api } from '$lib/api/client';
 	import { Card, Button, Badge } from '$lib/components/ui';
-	import { Users, Copy, Check, QrCode } from 'lucide-svelte';
+	import { Users, Copy, Check, QrCode, Share2 } from 'lucide-svelte';
 	import WerewolfGame from '$lib/games/werewolf/WerewolfGame.svelte';
 	import InviteQRCode from '$lib/components/InviteQRCode.svelte';
+	import { browser } from '$app/environment';
 
 	const roomCode = $page.params.code;
 
@@ -177,6 +178,39 @@
 			console.error('Failed to copy:', err);
 		}
 	}
+
+	async function shareInviteLink() {
+		if (!browser || !roomCode) return;
+
+		const inviteUrl = `${window.location.origin}/join/${roomCode}`;
+
+		// Check if Web Share API is available (mainly mobile)
+		if (navigator.share) {
+			try {
+				await navigator.share({
+					title: 'Join my Cardless game!',
+					text: `Join room ${roomCode}`,
+					url: inviteUrl
+				});
+			} catch (err) {
+				// User cancelled or share failed
+				if (err instanceof Error && err.name !== 'AbortError') {
+					console.error('Share failed:', err);
+					// Fallback to copy
+					await navigator.clipboard.writeText(inviteUrl);
+				}
+			}
+		} else {
+			// Fallback to copy on desktop
+			try {
+				await navigator.clipboard.writeText(inviteUrl);
+				copied = true;
+				setTimeout(() => copied = false, 2000);
+			} catch (err) {
+				console.error('Failed to copy:', err);
+			}
+		}
+	}
 </script>
 
 <svelte:head>
@@ -234,14 +268,24 @@
 							Share this code with your friends
 						</p>
 
-						<!-- QR Code toggle -->
-						<button
-							onclick={() => showQRCode = !showQRCode}
-							class="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm bg-secondary/10 hover:bg-secondary/20 text-secondary rounded-lg transition-colors"
-						>
-							<QrCode class="w-4 h-4" />
-							<span>{showQRCode ? 'Hide' : 'Show'} QR Code</span>
-						</button>
+						<!-- Action buttons -->
+						<div class="flex gap-2 mt-4">
+							<button
+								onclick={shareInviteLink}
+								class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors font-medium"
+							>
+								<Share2 class="w-4 h-4" />
+								<span>Share Link</span>
+							</button>
+
+							<button
+								onclick={() => showQRCode = !showQRCode}
+								class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm bg-secondary/10 hover:bg-secondary/20 text-secondary rounded-lg transition-colors"
+							>
+								<QrCode class="w-4 h-4" />
+								<span>{showQRCode ? 'Hide' : 'Show'} QR Code</span>
+							</button>
+						</div>
 					</div>
 				</Card>
 
