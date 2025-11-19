@@ -7,8 +7,9 @@
 	import { createWebSocket } from '$lib/stores/websocket.svelte';
 	import { api } from '$lib/api/client';
 	import { Card, Button, Badge } from '$lib/components/ui';
-	import { Users, Copy, Check } from 'lucide-svelte';
+	import { Users, Copy, Check, QrCode } from 'lucide-svelte';
 	import WerewolfGame from '$lib/games/werewolf/WerewolfGame.svelte';
+	import InviteQRCode from '$lib/components/InviteQRCode.svelte';
 
 	const roomCode = $page.params.code;
 
@@ -17,6 +18,7 @@
 	let roomState = $state<any>(null);
 	let previousStatus = $state<string | null>(null);
 	let copied = $state(false);
+	let showQRCode = $state(false);
 
 	// Derived reactive values
 	let isHost = $derived(session.value?.playerId === roomState?.hostId);
@@ -231,8 +233,24 @@
 						<p class="text-sm text-muted-foreground mt-3">
 							Share this code with your friends
 						</p>
+
+						<!-- QR Code toggle -->
+						<button
+							onclick={() => showQRCode = !showQRCode}
+							class="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm bg-secondary/10 hover:bg-secondary/20 text-secondary rounded-lg transition-colors"
+						>
+							<QrCode class="w-4 h-4" />
+							<span>{showQRCode ? 'Hide' : 'Show'} QR Code</span>
+						</button>
 					</div>
 				</Card>
+
+				<!-- QR Code card (collapsible) -->
+				{#if showQRCode && roomCode}
+					<Card class="p-6">
+						<InviteQRCode roomCode={roomCode} />
+					</Card>
+				{/if}
 
 				<!-- Players card -->
 				<Card class="p-6">

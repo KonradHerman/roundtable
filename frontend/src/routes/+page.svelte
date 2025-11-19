@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import { api, type JoinRoomRequest } from '$lib/api/client';
 	import { session } from '$lib/stores/session.svelte';
 
@@ -7,6 +9,18 @@
 	let displayName = '';
 	let loading = false;
 	let error = '';
+
+	// Handle error from redirect (expired/invalid room)
+	onMount(() => {
+		const errorParam = $page.url.searchParams.get('error');
+		if (errorParam === 'room_expired') {
+			error = 'That room has ended';
+		} else if (errorParam === 'room_not_found') {
+			error = 'Room not found';
+		} else if (errorParam === 'connection_failed') {
+			error = 'Failed to connect to server';
+		}
+	});
 
 	async function handleJoin() {
 		if (!joinCode.trim() || !displayName.trim()) {
@@ -73,6 +87,12 @@
 			</div>
 
 			<form on:submit|preventDefault={handleJoin} class="space-y-3">
+				{#if error}
+					<div class="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+						<p class="text-sm text-destructive">{error}</p>
+					</div>
+				{/if}
+
 				<input
 					type="text"
 					bind:value={joinCode}
@@ -83,7 +103,7 @@
 					autocapitalize="characters"
 					disabled={loading}
 				/>
-				
+
 				{#if joinCode.trim()}
 					<input
 						type="text"
@@ -94,13 +114,7 @@
 						autocomplete="off"
 						disabled={loading}
 					/>
-					
-					{#if error}
-						<div class="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-							<p class="text-sm text-destructive">{error}</p>
-						</div>
-					{/if}
-					
+
 					<button type="submit" class="btn btn-secondary w-full" disabled={loading || !displayName.trim()}>
 						{loading ? 'Joining...' : 'Join Game'}
 					</button>
