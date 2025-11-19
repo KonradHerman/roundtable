@@ -1,6 +1,8 @@
 # Backend Remediation Plan
 ## Go Best Practices & Security Hardening
 
+> **Status**: Most critical items completed. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for progress tracking.
+
 This document provides detailed guidance for addressing security, concurrency, and architectural gaps identified in the Roundtable backend audit.
 
 ---

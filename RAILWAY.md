@@ -144,20 +144,52 @@ VITE_API_URL=http://cardless.railway.internal:8080/api
 
 ## Build Configuration
 
+This project uses **Railpack** (Railway's build system), NOT Docker.
+
 ### Backend
 
-Railway uses Railpack, which auto-detects Go:
-- Builds with `go build cmd/server/main.go`
-- Uses `backend/nixpacks.toml` if present
-- See `backend/railway.json` for deployment config
+Railway auto-detects Go:
+- **Builder**: Railpack (auto-detected via `backend/railway.json`)
+- **Build Command**: Auto-detected (`go build`)
+- **Start Command**: Runs `./server`
+- Uses `backend/nixpacks.toml` for build configuration
+
+**Important**: Root directory must be set to `backend/` BEFORE first build.
 
 ### Frontend
 
 Railway auto-detects Node.js:
-- Runs `npm install`
-- Runs `npm run build`
-- Starts with `npm start`
+- **Builder**: Railpack (auto-detected via `frontend/railway.json`)
+- **Build Command**: `npm run build`
+- **Start Command**: `npm start` (runs `node build`)
 - Uses SvelteKit's Node adapter
+
+**Important**: Root directory must be set to `frontend/` BEFORE first build.
+
+### If Railway Defaults to Docker
+
+If Railway tries to use Docker instead of Railpack:
+
+1. **Delete the service** completely from Railway
+2. **Create a NEW service** from GitHub
+3. Set the **Root Directory** FIRST (before any build)
+4. Railway will auto-detect Railpack
+
+OR
+
+1. Go to Service Settings
+2. Scroll to Build section
+3. Click "Clear Build Cache"
+4. Redeploy
+
+### Configuration Files
+
+- `backend/railway.json` - Forces Railpack builder  
+- `frontend/railway.json` - Forces Railpack builder  
+- `backend/nixpacks.toml` - Build configuration  
+- `frontend/nixpacks.toml` - Build configuration  
+
+**Note**: No Dockerfiles should exist in this repo!
 
 ## Monitoring
 

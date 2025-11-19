@@ -1,7 +1,11 @@
 # Cardless: Party Game Platform Architecture
 
+> **Play at [cardless.games](https://cardless.games)**
+
 ## Vision
 Replace physical cards with phones for in-person multiplayer party games. The app handles role assignment, private information, and night actions while preserving the social, in-person nature of these games.
+
+**Status**: One Night Werewolf is live and playable. Platform validated for additional games.
 
 ## Core Principles
 
@@ -65,7 +69,12 @@ type Game interface {
 **Views are derived from events:**
 - **Player view**: Filtered to what that player can see (their role, night action results)
 - Events can be public (everyone sees) or private (specific players only)
-- No board/spectator view for MVP - focus is on player experience
+- Board/spectator views can be added by subscribing to public events
+
+**Implementation Notes:**
+- Frontend uses Svelte stores (migrating to Svelte 5 runes)
+- WebSocket delivers events to connected clients
+- Reconnection handled by replaying event log
 
 ### 4. Server-Authoritative Design
 Clients **request actions**, server **validates and broadcasts results**.
@@ -159,124 +168,105 @@ type WerewolfState struct {
 
 ## Project Structure
 
+**Current implementation** (as of November 2024):
+
 ```
 roundtable/
 ├── backend/
-│   ├── cmd/
-│   │   └── server/
-│   │       └── main.go                 # Entry point
+│   ├── cmd/server/
+│   │   └── main.go                     # Entry point
 │   │
 │   ├── internal/
 │   │   ├── core/                       # Platform core (game-agnostic)
 │   │   │   ├── game.go                 # Game interface
 │   │   │   ├── room.go                 # Room management
 │   │   │   ├── player.go               # Player management
-│   │   │   ├── event.go                # Event types
-│   │   │   └── errors.go
+│   │   │   └── event.go                # Event types
 │   │   │
 │   │   ├── games/                      # Game implementations
 │   │   │   ├── registry.go             # Game factory
-│   │   │   ├── werewolf/
-│   │   │   │   ├── game.go             # Implements core.Game
-│   │   │   │   ├── state.go            # Game state
-│   │   │   │   ├── events.go           # Event types
-│   │   │   │   ├── actions.go          # Action types
-│   │   │   │   ├── roles.go            # Role logic
-│   │   │   │   └── phases.go           # Phase transitions
-│   │   │   │
-│   │   │   └── avalon/                 # Future game
-│   │   │       └── ...
+│   │   │   └── werewolf/
+│   │   │       ├── game.go             # Implements core.Game
+│   │   │       ├── state.go            # Game state
+│   │   │       ├── config.go           # Configuration types
+│   │   │       ├── narration.go        # Host narration script
+│   │   │       └── phases.go           # Phase transitions
 │   │   │
 │   │   ├── server/                     # HTTP & WebSocket server
-│   │   │   ├── server.go               # HTTP server setup
 │   │   │   ├── handlers.go             # REST endpoints
 │   │   │   ├── websocket.go            # WS connection manager
-│   │   │   ├── messages.go             # WS message types
-│   │   │   └── middleware.go           # Auth, logging
+│   │   │   └── messages.go             # WS message types
 │   │   │
 │   │   ├── store/                      # State persistence
 │   │   │   ├── store.go                # Store interface
-│   │   │   ├── memory.go               # In-memory (MVP)
-│   │   │   └── redis.go                # Redis (production)
+│   │   │   └── memory.go               # In-memory implementation
 │   │   │
 │   │   └── util/
-│   │       ├── codegen.go              # 6-char room codes
-│   │       └── token.go                # Session tokens
+│   │       └── codegen.go              # 6-char room codes
 │   │
 │   ├── go.mod
-│   └── go.sum
+│   ├── go.sum
+│   └── Dockerfile
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── routes/
-│   │   │   ├── +page.svelte            # Landing: Create or Join
-│   │   │   │
+│   │   │   ├── +layout.svelte          # Root layout
+│   │   │   ├── +page.svelte            # Landing page
 │   │   │   ├── create/
-│   │   │   │   └── +page.svelte        # Choose game type, create room
-│   │   │   │
+│   │   │   │   └── +page.svelte        # Create room
 │   │   │   ├── join/
-│   │   │   │   └── +page.svelte        # Enter code + name
-│   │   │   │
-│   │   │   ├── room/
-│   │   │   │   └── [code]/
-│   │   │   │       ├── +page.svelte    # Router: lobby → game → results
-│   │   │   │       ├── +layout.svelte  # Room shell, WS connection
-│   │   │   │       │
-│   │   │   │       └── board/
-│   │   │   │           └── +page.svelte # Optional board view (QR code to join)
-│   │   │   │
-│   │   │   └── api/                    # API proxy routes (optional)
+│   │   │   │   └── +page.svelte        # Join room
+│   │   │   └── room/[code]/
+│   │   │       └── +page.svelte        # Game room (lobby → game)
 │   │   │
 │   │   ├── lib/
-│   │   │   ├── components/
-│   │   │   │   ├── ui/
-│   │   │   │   │   ├── Button.svelte
-│   │   │   │   │   ├── Card.svelte
-│   │   │   │   │   └── Timer.svelte
-│   │   │   │   │
-│   │   │   │   ├── room/
-│   │   │   │   │   ├── Lobby.svelte        # Player list, config, start
-│   │   │   │   │   ├── PlayerList.svelte
-│   │   │   │   │   ├── QRCode.svelte       # Room code QR
-│   │   │   │   │   └── Results.svelte      # Game over screen
-│   │   │   │   │
-│   │   │   │   └── board/
-│   │   │   │       └── BoardView.svelte    # Game-agnostic board
+│   │   │   ├── api/
+│   │   │   │   └── client.ts           # API client
 │   │   │   │
-│   │   │   ├── stores/
-│   │   │   │   ├── room.ts                 # Room state (players, status)
-│   │   │   │   ├── game.ts                 # Game state (derived from events)
-│   │   │   │   ├── websocket.ts            # WS connection manager
-│   │   │   │   └── session.ts              # Player session (token, ID)
+│   │   │   ├── components/ui/          # Reusable UI components
+│   │   │   │   ├── button.svelte
+│   │   │   │   ├── card.svelte
+│   │   │   │   ├── badge.svelte
+│   │   │   │   ├── CardBack.svelte
+│   │   │   │   └── index.ts
 │   │   │   │
-│   │   │   ├── games/                      # Game-specific components
-│   │   │   │   ├── werewolf/
-│   │   │   │   │   ├── WerewolfGame.svelte # Main game component
-│   │   │   │   │   ├── RoleCard.svelte     # Show player's role
-│   │   │   │   │   ├── NightPhase.svelte   # Night action UI
-│   │   │   │   │   ├── DayPhase.svelte     # Voting UI
-│   │   │   │   │   └── WerewolfBoard.svelte # Public board (minimal for Werewolf)
-│   │   │   │   │
-│   │   │   │   └── avalon/
-│   │   │   │       └── ...
+│   │   │   ├── stores/                 # State management
+│   │   │   │   ├── game.ts             # Game state (migrating to .svelte.ts)
+│   │   │   │   ├── session.ts          # Player session
+│   │   │   │   └── websocket.ts        # WS connection
 │   │   │   │
-│   │   │   └── api/
-│   │   │       └── client.ts               # API client (fetch wrapper)
+│   │   │   ├── games/werewolf/         # Werewolf-specific components
+│   │   │   │   ├── WerewolfGame.svelte
+│   │   │   │   ├── RoleReveal.svelte
+│   │   │   │   ├── NightPhase.svelte
+│   │   │   │   ├── DayPhase.svelte
+│   │   │   │   ├── Results.svelte
+│   │   │   │   ├── PlayerCardSelect.svelte
+│   │   │   │   └── CenterCardSelect.svelte
+│   │   │   │
+│   │   │   └── utils.ts
 │   │   │
+│   │   ├── app.css                     # Tailwind + custom styles
 │   │   └── app.html
 │   │
-│   ├── static/
-│   │   └── favicon.png
-│   │
+│   ├── static/                         # Static assets (favicons, etc.)
 │   ├── svelte.config.js
-│   ├── vite.config.js
+│   ├── vite.config.ts
 │   ├── package.json
-│   └── tailwind.config.js              # Mobile-first styling
+│   ├── tailwind.config.js
+│   └── Dockerfile
 │
-├── docker-compose.yml
-├── Dockerfile
-└── README.md
+├── README.md
+├── ARCHITECTURE.md                     # This file
+├── ROADMAP.md                          # Development roadmap
+├── DEVELOPMENT.md                      # Setup & contribution guide
+├── FUTURE_IMPROVEMENTS.md              # Reverted features to reimplement
+├── GAMES_ROADMAP.md                    # Game implementation plans
+└── docker-compose.yml
 ```
+
+**Note**: Frontend is currently using Svelte 4 syntax with plans to migrate to Svelte 5 Runes. See `FUTURE_IMPROVEMENTS.md` for migration details.
 
 ---
 
@@ -694,122 +684,55 @@ func (g *WerewolfGame) GetPublicState() PublicState {
 
 ---
 
-## Phased Implementation Plan
+## Implementation Status
 
-### **Phase 1: Foundation (3-4 days) - "It works!" moment**
+### Phase 1: Foundation ✅ COMPLETE
+- ✅ Room creation and joining with 6-character codes
+- ✅ Real-time player list with WebSocket connections
+- ✅ Anonymous session management
+- ✅ Event sourcing infrastructure
+- ✅ In-memory state store
 
-**Goal**: Create room, join, see each other's names
-
-**Backend:**
-- [ ] Project setup: `go mod init`, basic server
-- [ ] Room creation endpoint: `POST /api/rooms`
-- [ ] Join endpoint: `POST /api/rooms/:code/join`
-- [ ] In-memory store for rooms
-- [ ] WebSocket connection handling
-- [ ] Broadcast player joined/left events
-
-**Frontend:**
-- [ ] SvelteKit project setup
-- [ ] Landing page (Create / Join buttons)
-- [ ] Create room flow
-- [ ] Join room flow (enter code + name)
-- [ ] Room lobby: player list updates in real-time
-- [ ] WebSocket store with auto-reconnect
-
-**Success criteria**: 5 friends can join room XJ4K2P from their phones, see each other's names appear live
-
----
-
-### **Phase 2: Werewolf MVP (5-6 days)**
-
-**Goal**: Play full game of One Night Werewolf
-
+### Phase 2: Werewolf MVP 🔄 IN PROGRESS
 **Completed:**
-- [x] Game interface definition
-- [x] Event sourcing infrastructure
-- [x] Werewolf game implementation (basic flow)
-- [x] Role assignment (players + 3 center cards)
-- [x] Start game endpoint
-- [x] Game state store (event-driven)
-- [x] Role reveal with acknowledgements
-- [x] Night phase with host narration
-- [x] Day phase with timer controls
-- [x] Results calculation logic
+- ✅ Game abstraction layer
+- ✅ Role assignment (players + 3 center cards)
+- ✅ Role reveal with player acknowledgements
+- ✅ Night phase with host narration script
+- ✅ Day phase with discussion timer
+- ✅ Results calculation logic (village vs werewolves, tanner)
 
-**In Progress (Current Sprint):**
-- [ ] Digital night actions for each role:
-  - [ ] Werewolf: See other werewolves
-  - [ ] Seer: View player or center cards
-  - [ ] Robber: Swap and view new role
-  - [ ] Troublemaker: Swap two others
-  - [ ] Drunk: Swap with center (blind)
-  - [ ] Insomniac: View final role
-- [ ] Remove phone voting (use physical voting)
-- [ ] Role reveal screen (show final roles)
-- [ ] Play again feature
-- [ ] Fix host tracking
+**Current Work:**
+- 🔨 Digital night actions for all roles
+- 🔨 Role reveal screen (show final roles after discussion)
+- 🔨 Play again feature
+- 🔨 Physical voting flow (removing digital voting)
 
-**Success criteria**: Digital night actions work, physical voting flows naturally, can play multiple rounds
+### Phase 3: Polish & Stability 📋 PLANNED
+- QR code room sharing
+- Reconnection handling with event replay
+- Mobile UI polish and accessibility
+- Error boundaries and loading states
+- Room cleanup and expiry
 
----
+### Phase 4: Framework Upgrade 🔄 PLANNED
+- Migrate frontend to Svelte 5 Runes system
+- Improve CORS handling (rs/cors library)
+- Priority queue for phase timeouts (backend optimization)
+- See `FUTURE_IMPROVEMENTS.md` for details
 
-### **Phase 3: Polish & Stability (3-4 days)**
+### Phase 5: Additional Games 🎲 PLANNED
+- **Avalon**: Quest voting, team selection, Merlin/Assassin
+- **Spyfall**: Location deduction with Q&A rounds
+- **Skull**: Bluffing and bidding mechanics
+- **Wavelength**: Team spectrum guessing
+- See `GAMES_ROADMAP.md` for implementation plans
 
-**Goal**: Stable, reconnection-proof Werewolf
-
-**Backend:**
-- [ ] Session token reconnection
-- [ ] Event replay for reconnecting clients
-- [ ] Room expiry and cleanup
-
-**Frontend:**
-- [ ] QR code generation for room code
-- [ ] Reconnection handling (detect disconnect, auto-retry)
-- [ ] Error boundaries and loading states
-- [ ] Mobile UI polish (better touch targets)
-
-**Success criteria**: Handles edge cases, reconnection works smoothly, ready for extended playtesting
-
----
-
-### **Phase 4: Second Game - Avalon (4-5 days)**
-
-**Goal**: Validate architecture, prove it's multi-game
-
-**Before starting:**
-- [ ] Extract reusable patterns from Werewolf
-- [ ] Document game implementation guide
-- [ ] Identify what's game-specific vs platform-specific
-
-**Backend:**
-- [ ] Avalon game implementation
-- [ ] Quest voting mechanics
-- [ ] Team selection logic
-- [ ] Merlin/Assassin reveal
-
-**Frontend:**
-- [ ] Avalon-specific components
-- [ ] Quest tracking UI
-- [ ] Team selection UI
-
-**Success criteria**: Avalon works with minimal changes to core platform, validates game abstraction
-
----
-
-### **Phase 5: Production Ready (3-4 days)**
-
-**Backend:**
-- [ ] Redis store implementation
-- [ ] Docker deployment optimization
-- [ ] Rate limiting
-- [ ] Health monitoring
-
-**Frontend:**
-- [ ] PWA manifest (installable)
-- [ ] Performance optimization
-- [ ] Analytics (optional)
-
-**Success criteria**: Deploy to homelab or cloud, stable for regular game nights
+### Phase 6: Production Ready 🚀 PLANNED
+- Redis store for horizontal scaling
+- PWA manifest and offline support
+- Rate limiting and monitoring
+- Self-hosting documentation
 
 ---
 
@@ -860,29 +783,47 @@ The app replaces cards, not in-person interaction. Physical voting and social de
 
 | Layer | Technology | Rationale |
 |-------|-----------|-----------|
-| Backend | **Go 1.21+** | Goroutines for concurrency, fast compile, excellent WS support |
-| Frontend | **SvelteKit** | You know it, mobile-friendly, reactive stores |
-| Real-time | **nhooyr.io/websocket** | Modern Go WS library, context-aware |
-| State | **In-memory → Redis** | Start simple, scale horizontally later |
-| Events | **Event Sourcing** | Reconnection, replay, audit, spectators |
-| Database | **SQLite** (optional) | Game history, stats (write-after, not during) |
-| Styling | **Tailwind CSS** | Mobile-first utilities, rapid iteration |
-| Deploy | **Docker** | Single container, easy homelab deployment |
+| **Backend** | Go 1.21+ | Goroutines for concurrency, fast compile, excellent WS support |
+| **Frontend** | SvelteKit + Svelte 5 | Mobile-friendly, reactive, modern runes system |
+| **Real-time** | nhooyr.io/websocket | Modern Go WS library, context-aware |
+| **State** | In-memory (→ Redis) | Start simple, scale horizontally later |
+| **Events** | Event Sourcing | Reconnection, replay, audit, future spectator mode |
+| **Styling** | Tailwind CSS | Mobile-first utilities, rapid iteration |
+| **Deploy** | Railway (Docker) | Automatic builds, easy scaling |
 
 ---
 
-## Next Steps
+## Future Considerations
 
-I'll now create the full project structure with:
-1. Backend scaffolding (core interfaces, room management, WebSocket server)
-2. Frontend scaffolding (routes, stores, WebSocket client)
-3. Docker setup
-4. Implementation guide
+### Svelte 5 Migration
+The frontend is migrating from Svelte 4 to Svelte 5:
+- `$:` reactive declarations → `$derived` rune
+- `let` state → `$state` rune
+- `export let` props → `$props()` rune
+- Writable stores → `.svelte.ts` files with runes
+
+See `FUTURE_IMPROVEMENTS.md` for migration plan and rollback details.
+
+### Backend Optimizations
+Planned improvements (reverted from earlier deployment):
+- Priority queue for phase timeouts (O(log N) vs O(N) polling)
+- Production-grade CORS with rs/cors library
+- Connection state tracking with visual indicators
+
+### Horizontal Scaling
+Current in-memory store works for 100s of concurrent games. For larger scale:
+- Redis store for state persistence
+- Multiple backend instances behind load balancer
+- Event log as single source of truth enables easy replication
+
+---
+
+## Architecture Principles
 
 This architecture is **opinionated** about separation of concerns:
 - **Core** = game-agnostic platform
-- **Games** = isolated, pluggable
+- **Games** = isolated, pluggable implementations
 - **Server** = thin transport layer
 - **Store** = swappable persistence
 
-Adding game #2 and #3 will be **easy**. Let's build it.
+**Result**: Adding game #2, #3, #4 is straightforward once the platform is validated.

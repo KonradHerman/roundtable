@@ -1,32 +1,47 @@
 # 🎲 Cardless
 
-**A multiplayer party game platform that replaces physical cards and boards with phones + optional shared screens.**
+**Play party games without the cards.**
 
-Like Jackbox, but for tabletop games like One Night Werewolf, Avalon, Bohnanza, and more.
+Cardless replaces physical cards with your phone for in-person party games. Create a room, share the code, and start playing—no shuffling, no lost pieces, no cheating.
 
----
-
-## ✨ Vision
-
-- **In-person play**: Same room with friends, not remote
-- **Phone as controller**: Each player's phone is their "hand" (private info, actions)
-- **Optional shared board**: Public game state on TV/projector for games that need it
-- **Anonymous-first**: No signup required, just join with a room code
-- **Ultra-convenient**: Faster setup than shuffling cards, no lost pieces
+**🎮 [Play Now at cardless.games](https://cardless.games)**
 
 ---
 
-## 🎯 MVP: One Night Werewolf
+## What is Cardless?
 
-- Room creation with 6-character code (+ QR code generation)
-- Anonymous join with display name
-- Host configures roles and starts game
-- Server randomly assigns roles (players see only theirs)
-- Night phase: server wakes roles in sequence, players act on phone
-- Day phase: discussion timer, voting on phones
-- Results reveal with win condition
-- "Play again" with same players
-- Optional board view (architecture supports it from day 1)
+Cardless brings the best tabletop party games to your phone while keeping the social, in-person experience that makes them fun. Think of it like Jackbox, but for social deduction and bluffing games.
+
+**Currently available:**
+- **One Night Werewolf** - Social deduction with secret roles and night actions
+
+**Coming soon:**
+- Avalon, Spyfall, Skull, Wavelength, and more!
+
+### Why Cardless?
+
+- **✨ Instant setup**: No shuffling, dealing, or organizing components
+- **🎭 Perfect information**: Digital night actions prevent accidental peeks and track role swaps
+- **📱 Anonymous play**: No account required—just share a room code
+- **🏠 In-person focused**: Designed for same-room play with friends
+- **🔒 Privacy-first**: No personal data collection, rooms expire automatically
+
+---
+
+## 🎮 How It Works
+
+1. **Host creates a room** - Choose a game and get a 6-character room code
+2. **Friends join** - Enter the code and a display name (no account needed)
+3. **Play together** - Each phone becomes your private "hand" of cards
+4. **Discuss in person** - The real magic happens face-to-face
+
+### One Night Werewolf Features
+
+- 🎭 **Secret role assignment** - Everyone gets a hidden role
+- 🌙 **Digital night actions** - Seer, Robber, Troublemaker, and more
+- ⏱️ **Discussion timer** - Keep conversations focused
+- 👉 **Physical voting** - Point at suspects together (preserves the drama!)
+- 🔄 **Play again** - Same room, new game instantly
 
 ---
 
@@ -121,294 +136,141 @@ roundtable/
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Play Online
 
-- Go 1.21+
-- Node.js 20+
+Visit **[cardless.games](https://cardless.games)** to start playing immediately!
 
-### Option 1: Railway Deployment (Recommended)
+### Run Locally
 
-This project uses Railpack (Railway's build system) for deployment:
+Want to self-host or contribute? See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions.
 
-1. Push to GitHub
-2. Create two services in Railway:
-   - **Backend**: Set root directory to `backend/`
-   - **Frontend**: Set root directory to `frontend/`
-3. Railway will auto-detect and build both services
-4. Set environment variables as needed
-
-### Option 2: Local Development
-
-**Backend:**
+**Quick version:**
 ```bash
+# Backend (Go 1.21+)
 cd backend
-go mod download
 go run cmd/server/main.go
 
-# Server runs on :8080
-```
-
-**Frontend:**
-```bash
+# Frontend (Node.js 20+)
 cd frontend
 npm install
 npm run dev
-
-# Frontend runs on :5173 (dev) or :3000 (prod)
 ```
 
----
-
-## 🎮 How to Play
-
-1. **Host creates room**: Go to app → "Host a Game" → Choose Werewolf → Enter name → Get room code `XJ4K2P`
-2. **Players join**: Others go to app → "Join Game" → Enter code `XJ4K2P` + name
-3. **Host starts**: Configure roles (must be player count + 3) → "Start Game"
-4. **Role reveal**: Each player privately views their role on their phone
-5. **Night phase**: Roles wake in sequence and perform actions on their phones:
-   - Werewolves see each other
-   - Seer views another player's role or two center cards
-   - Robber swaps cards with another player
-   - Troublemaker swaps two other players' cards
-   - Drunk swaps with a center card (doesn't see new role)
-   - Insomniac sees their final role
-6. **Day phase**: Discuss (in person!) with optional timer. Use your knowledge to figure out who the werewolves are!
-7. **Vote**: Everyone simultaneously points at who to eliminate (traditional ONUW style)
-8. **Reveal**: All players reveal their final roles on their phones to determine winner
-9. **Play again**: Host can start a new game with same players
+Then visit `http://localhost:5173`
 
 ---
 
-## 📋 Implementation Roadmap
-
-### ✅ Phase 1: Foundation (COMPLETE)
-- [x] Backend project structure
-- [x] Core game abstraction
-- [x] Event sourcing infrastructure
-- [x] Room and player management
-- [x] WebSocket connection handling
-- [x] In-memory store
-- [x] Frontend SvelteKit setup
-- [x] Landing, create, join pages
-- [x] WebSocket and session stores
-- [x] Docker configuration
-
-### 🔄 Phase 2: Werewolf MVP (IN PROGRESS)
-**Completed:**
-- [x] Lobby with player list
-- [x] Role assignment (players + 3 center cards)
-- [x] Role reveal with acknowledgements
-- [x] Night phase with host narration script
-- [x] Day phase with timer (start/pause/extend)
-- [x] Results calculation logic
-- [x] Game abstraction layer
-- [x] Host start game flow
-
-**Current Sprint:**
-- [ ] Digital night actions (Seer, Robber, Troublemaker, Drunk, Insomniac)
-- [ ] Remove phone voting (use physical voting instead)
-- [ ] Role reveal screen (show all roles after discussion)
-- [ ] Play again feature
-- [ ] Fix host tracking
-
-### 📦 Phase 3: Polish & Stability (3-4 days)
-- [ ] QR code generation for room
-- [ ] Reconnection handling
-- [ ] Mobile UI polish (better touch targets)
-- [ ] Error boundaries & loading states
-- [ ] Edge case handling
-
-### 🎯 Phase 4: Second Game - Avalon (4-5 days)
-- [ ] Extract reusable game patterns
-- [ ] Avalon game implementation
-- [ ] Validate game abstraction works for different game types
-- [ ] Mission voting UI
-- [ ] Team selection UI
-- [ ] Merlin/Assassin reveal
-
-### 🚢 Phase 5: Production Ready (3-4 days)
-- [ ] Redis store implementation
-- [ ] Room expiry (cleanup)
-- [ ] Rate limiting
-- [ ] PWA manifest (installable)
-- [ ] Homelab deployment guide
-
----
-
-## 🎯 Current Status & Next Steps
+## 🎯 Current Status
 
 **✅ Working Now:**
-- Full lobby system with real-time player list
-- Role assignment following ONUW rules (players + 3 center cards)
-- Role reveal phase with acknowledgements
+- Full One Night Werewolf implementation
+- Real-time multiplayer with WebSockets
+- Room creation and joining with 6-character codes
+- Role assignment and reveal
 - Night phase with host narration script
-- Day phase with timer controls
-- Event sourcing architecture ready for multiple games
+- Day phase with discussion timer
+- Event sourcing architecture for game state
 
-**🔨 Next Sprint (Digital Night Actions):**
-1. **Backend**: Implement action handlers for each role (Seer, Robber, Troublemaker, Drunk, Insomniac)
-2. **Frontend**: Create role-specific night phase UIs for each player
-3. **Backend**: Track role swaps and send private results back to players
-4. **Frontend**: Remove voting UI, replace with "reveal roles" screen
-5. **Backend + Frontend**: Implement play again feature
+**🔨 In Progress:**
+- Digital night actions for all roles (Seer, Robber, Troublemaker, Drunk, Insomniac)
+- Role reveal screen showing final roles
+- Play again feature
 
-**🧪 Then: Playtest with 6-8 people!**
-- Test all night actions work correctly
-- Verify physical voting flows naturally
-- Check reconnection edge cases
-- Polish based on feedback
+**📋 Planned:**
+- QR code room sharing
+- Reconnection handling
+- Additional games (Avalon, Spyfall, Skull, Wavelength)
 
----
-
-## 🏛️ Key Design Decisions
-
-### 1. Card Replacement, Not Full Digital Game
-This app **replaces physical cards**, not in-person interaction:
-- ✅ Role assignment and private viewing
-- ✅ Digital night actions (prevents cheating, tracks swaps)
-- ✅ Discussion timer
-- ❌ **NOT** digital voting - voting is physical (everyone points)
-- ❌ **NOT** automatic winner calculation - players determine this together
-
-### 2. Why Event Sourcing?
-- **Reconnection**: Replay events to rebuild state
-- **Debugging**: Full audit trail
-- **Multiple games**: Easy to add game #2, #3, etc.
-- **Time travel**: Rewind/replay for undo features
-
-### 3. Why Server-Authoritative?
-- **No cheating**: Server holds canonical state
-- **Security**: Clients can't see hidden info
-- **Consistency**: Single source of truth
-
-### 4. Why Game Abstraction?
-- **Extensibility**: Adding game #2 is easy
-- **Isolation**: Game-specific logic doesn't leak into core
-- **Testing**: Test games independently
-
-### 5. Why Anonymous-First?
-- **Instant play**: No signup friction
-- **Privacy**: Just display names
-- **Optional accounts**: Add later for stats
+See [ROADMAP.md](ROADMAP.md) for detailed development plan.
 
 ---
 
-## 🔧 API Reference
+## 🗺️ Roadmap
 
-### REST Endpoints
+We're building Cardless incrementally, validating the platform with each new game.
 
-```bash
-# Create room
-POST /api/rooms
-{
-  "gameType": "werewolf",
-  "displayName": "Alice",
-  "maxPlayers": 10
-}
-→ { "roomCode": "XJ4K2P", "sessionToken": "...", "playerId": "..." }
+### Phase 1: Foundation ✅
+Core platform with room management, WebSocket real-time communication, and event sourcing architecture.
 
-# Join room
-POST /api/rooms/:code/join
-{ "displayName": "Bob" }
-→ { "sessionToken": "...", "playerId": "...", "roomCode": "XJ4K2P" }
+### Phase 2: One Night Werewolf 🔄
+First complete game implementation to validate the platform. Currently completing digital night actions.
 
-# Get room state
-GET /api/rooms/:code
-→ { "id": "XJ4K2P", "status": "waiting", "players": [...], ... }
+### Phase 3: Polish & Stability 📋
+QR code sharing, reconnection handling, mobile UI polish, and production-ready features.
 
-# Start game
-POST /api/rooms/:code/start
-{ "config": { "roles": ["werewolf", "seer", ...] } }
-→ 200 OK
+### Phase 4: Additional Games 🎲
+- **Avalon** - Quest voting and team selection
+- **Spyfall** - Location deduction with question rounds
+- **Skull** - Bluffing and bidding mechanics
+- **Wavelength** - Team-based spectrum guessing
+
+See [ROADMAP.md](ROADMAP.md) and [GAMES_ROADMAP.md](GAMES_ROADMAP.md) for detailed plans.
+
+---
+
+## 🏗️ Architecture Highlights
+
+Cardless is built with scalability and extensibility in mind:
+
+### Event Sourcing
+Game state is derived from a sequence of events, enabling:
+- Seamless reconnection (replay events to rebuild state)
+- Full audit trail for debugging
+- Easy addition of spectator mode or game replays
+
+### Game Abstraction Layer
+Each game implements a common interface, making it straightforward to add new games without changing the core platform.
+
+### Server-Authoritative Design
+The server validates all actions and maintains the canonical game state—clients can't cheat or see hidden information.
+
+### Anonymous-First
+No accounts required. Players join with a room code and display name, keeping the friction low and privacy high.
+
+For technical details, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## 👥 For Developers
+
+### Contributing
+
+Want to add a new game or improve the platform?
+
+1. Fork the repository
+2. Check out [DEVELOPMENT.md](DEVELOPMENT.md) for setup
+3. Review [ARCHITECTURE.md](ARCHITECTURE.md) to understand the design
+4. See [GAMES_ROADMAP.md](GAMES_ROADMAP.md) for game ideas
+5. Submit a pull request
+
+### Tech Stack
+
+- **Backend**: Go 1.21+ with goroutines for concurrency
+- **Frontend**: SvelteKit with Svelte 5 (migrating)
+- **Real-time**: Native WebSockets (nhooyr.io/websocket)
+- **State**: Event sourcing with in-memory store (Redis later)
+- **Styling**: Tailwind CSS for mobile-first design
+
+### Project Structure
+
 ```
-
-### WebSocket Protocol
-
-**Client → Server:**
-```json
-{ "type": "authenticate", "payload": { "sessionToken": "..." } }
-{ "type": "action", "payload": { "action": { "type": "vote", "payload": {...} } } }
-{ "type": "ping" }
+roundtable/
+├── backend/              # Go backend
+│   ├── cmd/server/      # Entry point
+│   ├── internal/
+│   │   ├── core/        # Platform core (game-agnostic)
+│   │   ├── games/       # Game implementations
+│   │   ├── server/      # HTTP & WebSocket
+│   │   └── store/       # State persistence
+│
+├── frontend/            # SvelteKit frontend
+│   ├── src/
+│   │   ├── routes/      # Pages
+│   │   ├── lib/
+│   │   │   ├── stores/  # State management
+│   │   │   ├── games/   # Game-specific components
+│   │   │   └── components/  # Reusable UI
 ```
-
-**Server → Client:**
-```json
-{ "type": "authenticated", "payload": { "playerId": "...", "roomState": {...} } }
-{ "type": "event", "payload": { "event": {...} } }
-{ "type": "events", "payload": { "events": [...] } }
-{ "type": "error", "payload": { "message": "..." } }
-{ "type": "pong" }
-```
-
----
-
-## 🧪 Testing Strategy
-
-### Manual Testing (MVP)
-
-1. **Single device**: Create room, join in incognito, test voting
-2. **Multiple phones**: You + 2-3 friends, full game
-3. **Reconnection**: Turn off WiFi mid-game, reconnect
-4. **Edge cases**: Leave room, rejoin, host disconnects
-
-### Future: Automated Tests
-
-- Unit tests for game logic
-- Integration tests for WebSocket flow
-- E2E tests with Playwright
-
----
-
-## 📝 Development Notes
-
-### Backend
-
-- **Module name**: Update `go.mod` with your actual repo URL
-- **CORS**: Currently allows all origins (dev mode). Restrict in production.
-- **Cleanup**: Runs hourly to delete stale rooms (24h old, no active players)
-
-### Frontend
-
-- **API proxy**: Vite proxies `/api` to backend (see `vite.config.ts`)
-- **Mobile targets**: All touch targets 48x48px minimum
-- **Offline**: Detects disconnect, shows banner, auto-reconnects
-
-### Deployment
-
-- **Railpack**: Railway's build system with automatic language detection
-- **Monorepo**: Separate services for backend and frontend
-- **Health checks**: Backend has `/health` endpoint
-- **Environment**: Configure API_URL for frontend to connect to backend
-
----
-
-## 🐛 Known Issues / TODOs
-
-**Critical for MVP:**
-- [ ] Digital night actions not yet implemented (Seer, Robber, Troublemaker, Drunk, Insomniac)
-- [ ] Phone voting needs to be removed (use physical voting instead)
-- [ ] Play again feature not implemented
-- [ ] Host tracking uses first player instead of actual host
-- [ ] Reconnection handling not tested
-
-**Polish Items:**
-- [ ] QR code generation for room sharing
-- [ ] Session token security (use httpOnly cookies in production)
-- [ ] Mobile Safari PWA installation flow
-- [ ] Error boundaries and loading states
-- [ ] Accessibility (ARIA labels, keyboard nav)
-- [ ] Proper error messages (not just console.error)
-
----
-
-## 🤝 Contributing
-
-This is your personal project, but if you want to collaborate:
-
-1. Fork the repo
-2. Create a feature branch
-3. Make your changes
-4. Open a PR with clear description
 
 ---
 
@@ -416,33 +278,29 @@ This is your personal project, but if you want to collaborate:
 
 [CC BY-NC 4.0](LICENSE) - Creative Commons Attribution-NonCommercial 4.0 International
 
----
-
-## 🎉 Credits
-
-Built by a UX Engineer who loves party games and hates losing game pieces.
-
-**Tech inspiration:**
-- Jackbox Games (party game UX)
-- Among Us (mobile-first social deduction)
-- Netcode.io (real-time networking)
-
-**Game inspiration:**
-- One Night Werewolf (Bezier Games)
-- Avalon (Don Eskridge)
-- Bohnanza (Uwe Rosenberg)
+Free for personal use. Contact for commercial licensing.
 
 ---
 
-## 📞 Support
+## 🙏 Acknowledgments
 
-Questions? Check `ARCHITECTURE.md` for detailed design.
+**Built with love for the party game community.**
 
-Found a bug? Open an issue with:
-- Steps to reproduce
-- Expected vs actual behavior
-- Browser/device info
+Inspired by:
+- **Jackbox Games** - Pioneering phone-as-controller party games
+- **Bezier Games** - One Night Werewolf and Ultimate Werewolf
+- **Don Eskridge** - The Resistance and Avalon
+
+Special thanks to everyone who playtests and provides feedback!
 
 ---
 
-**Happy gaming! 🎲**
+## 📞 Get in Touch
+
+- 🐛 Found a bug? [Open an issue](https://github.com/yourusername/cardless/issues)
+- 💡 Have a game idea? Check [GAMES_ROADMAP.md](GAMES_ROADMAP.md)
+- 🎮 Want to contribute? See [DEVELOPMENT.md](DEVELOPMENT.md)
+
+---
+
+**🎲 [Start Playing Now](https://cardless.games)**

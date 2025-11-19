@@ -1,5 +1,8 @@
 # Backend Remediation Implementation Status
 
+> **Note**: This document tracks backend security and concurrency improvements.  
+> See [REMEDIATION_PLAN.md](REMEDIATION_PLAN.md) for detailed implementation guidance.
+
 This document tracks the implementation progress of the Backend Remediation Plan.
 
 ## ✅ Completed (Phase 1 Foundation)

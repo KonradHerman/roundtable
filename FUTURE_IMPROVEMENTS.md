@@ -163,10 +163,316 @@ When reimplementing these improvements:
 
 3. **Process Changes**:
    - Test all changes locally before deployment
-   - Deploy to staging environment first
+   - Deploy to staging environment first (or use feature flags)
    - Monitor production logs after deployment
-   - Have rollback plan ready
+   - Have rollback plan ready (git revert)
    - Document breaking changes and configuration requirements
+   - Commit after each phase completion
+
+## Detailed Svelte 5 Migration Guide
+
+### Prerequisites
+- Current: Svelte 4 syntax with `$:`, `export let`, writable stores
+- Target: Svelte 5 with Runes system (`$state`, `$derived`, `$props()`)
+- Package: `svelte: ^5.0.0` (already in package.json)
+
+### Phase A: Store Migration (game.svelte.ts, session.svelte.ts, websocket.svelte.ts)
+
+#### 1. game.ts → game.svelte.ts
+
+**Before** (Svelte 4 writable store):
+```typescript
+import { writable } from 'svelte/store';
+
+export const gameStore = writable({
+  room: null,
+  events: [],
+  playerState: null,
+  publicState: null
+});
+```
+
+**After** (Svelte 5 runes):
+```typescript
+class GameStore {
+  room = $state(null);
+  events = $state([]);
+  playerState = $state(null);
+  publicState = $state(null);
+
+  setRoomState(room) {
+    this.room = room;
+  }
+
+  appendEvent(event) {
+    this.events = [...this.events, event];
+  }
+
+  reset() {
+    this.room = null;
+    this.events = [];
+    this.playerState = null;
+    this.publicState = null;
+  }
+}
+
+export const gameStore = new GameStore();
+```
+
+**Testing**: Verify room state updates, event appending, and reset functionality
+
+#### 2. session.ts → session.svelte.ts
+
+**Before**:
+```typescript
+import { writable } from 'svelte/store';
+
+export const session = writable(null);
+```
+
+**After**:
+```typescript
+class SessionStore {
+  value = $state(null);
+
+  set(session) {
+    this.value = session;
+    if (browser) {
+      localStorage.setItem('session', JSON.stringify(session));
+    }
+  }
+
+  clear() {
+    this.value = null;
+    if (browser) {
+      localStorage.removeItem('session');
+    }
+  }
+}
+
+export const session = new SessionStore();
+```
+
+**Testing**: Verify localStorage sync, session persistence across page refreshes
+
+#### 3. websocket.ts → websocket.svelte.ts
+
+**Before** (factory function returning store):
+```typescript
+function createWebSocketStore(roomCode, sessionToken) {
+  const { subscribe, set, update } = writable({
+    status: 'disconnected',
+    messages: [],
+    error: null
+  });
+  // ... connection logic
+  return { subscribe, send, sendAction, disconnect };
+}
+```
+
+**After** (class with runes):
+```typescript
+class WebSocketStore {
+  status = $state('disconnected');
+  messages = $state([]);
+  error = $state(null);
+  
+  #ws = null;
+  #roomCode;
+  #sessionToken;
+
+  constructor(roomCode, sessionToken) {
+    this.#roomCode = roomCode;
+    this.#sessionToken = sessionToken;
+    this.connect();
+  }
+
+  connect() {
+    this.status = 'connecting';
+    // ... WebSocket setup
+  }
+
+  send(message) {
+    if (this.#ws?.readyState === WebSocket.OPEN) {
+      this.#ws.send(JSON.stringify(message));
+    }
+  }
+
+  disconnect() {
+    this.#ws?.close();
+    this.status = 'disconnected';
+  }
+}
+
+export function createWebSocket(roomCode, sessionToken) {
+  return new WebSocketStore(roomCode, sessionToken);
+}
+```
+
+**Testing**: Verify connection, message sending/receiving, reconnection logic
+
+### Phase B: Layout & Core Pages
+
+#### 4. +layout.svelte
+
+**Before**:
+```svelte
+<script>
+  import { session } from '$lib/stores/session';
+  $: isLoggedIn = $session !== null;
+</script>
+```
+
+**After**:
+```svelte
+<script>
+  import { session } from '$lib/stores/session.svelte';
+  let isLoggedIn = $derived(session.value !== null);
+</script>
+```
+
+**Testing**: Verify reactive updates when session changes
+
+#### 5. room/[code]/+page.svelte
+
+**Before**:
+```svelte
+<script>
+  import { gameStore } from '$lib/stores/game';
+  $: roomState = $gameStore.room;
+  $: isHost = $session?.playerId === roomState?.hostId;
+</script>
+```
+
+**After**:
+```svelte
+<script>
+  import { gameStore } from '$lib/stores/game.svelte';
+  import { session } from '$lib/stores/session.svelte';
+  
+  let roomState = $derived(gameStore.room);
+  let isHost = $derived(session.value?.playerId === roomState?.hostId);
+</script>
+```
+
+**Testing**: Verify room state reactivity, host detection, WebSocket connection
+
+### Phase C: Werewolf Game Components
+
+#### 6. WerewolfGame.svelte
+
+**Before**:
+```svelte
+<script lang="ts">
+  export let roomCode: string;
+  export let roomState: any;
+  export let wsStore: any;
+
+  $: myRole = /* derived from gameStore */;
+  $: currentPhase = /* derived from gameStore */;
+</script>
+```
+
+**After**:
+```svelte
+<script lang="ts">
+  let { roomCode, roomState, wsStore } = $props();
+
+  let myRole = $derived(/* derived from gameStore */);
+  let currentPhase = $derived(/* derived from gameStore */);
+</script>
+```
+
+**Testing**: Verify all props are received, reactive computations work
+
+#### 7. DayPhase.svelte
+
+**Before**:
+```svelte
+<script lang="ts">
+  export let roomState: any;
+  export let wsStore: any;
+  export let timerActive: boolean = false;
+  export let phaseEndsAt: Date | null = null;
+
+  $: isHost = $session?.playerId === roomState?.hostId;
+</script>
+```
+
+**After**:
+```svelte
+<script lang="ts">
+  let { roomState, wsStore, timerActive = false, phaseEndsAt = null } = $props();
+
+  let isHost = $derived($session?.playerId === roomState?.hostId);
+</script>
+```
+
+**Testing**: Verify timer reactivity, host controls, action sending
+
+### Phase D: UI Components
+
+#### 8. button.svelte
+
+**Before**:
+```svelte
+<script lang="ts">
+  export let variant: 'default' | 'outline' = 'default';
+  export let disabled: boolean = false;
+  export let className: string = '';
+</script>
+```
+
+**After**:
+```svelte
+<script lang="ts">
+  let { 
+    variant = 'default',
+    disabled = false,
+    class: className = '',
+    children
+  } = $props();
+</script>
+
+<button {disabled} class={cn(buttonVariants({ variant }), className)}>
+  {@render children?.()}
+</button>
+```
+
+**Testing**: Verify all variants, disabled state, className merging
+
+### Testing Checklist for Each Phase
+
+- [ ] Local dev server runs without errors
+- [ ] All pages load correctly
+- [ ] WebSocket connections establish
+- [ ] Room creation works
+- [ ] Room joining works
+- [ ] Real-time updates (player list) work
+- [ ] Game start flow works
+- [ ] Role reveal works
+- [ ] Night phase displays correctly
+- [ ] Day phase timer works
+- [ ] No console errors or warnings
+- [ ] Test on Chrome, Firefox, Safari
+- [ ] Test on mobile device
+
+### Rollback Procedure
+
+If issues arise:
+1. Note the specific issue (networking, reactivity, etc.)
+2. `git log` to find the migration commit
+3. `git revert [commit-hash]`
+4. Document the issue in this file
+5. Deploy the revert
+6. Analyze the issue before reattempting
+
+### Known Gotchas
+- Store subscriptions: `$store` auto-subscription doesn't work with runes - use `$derived(store.value)` instead
+- Props destructuring: Must use `$props()`, not `export let`
+- Derived state: `$derived` re-runs when dependencies change - be careful with expensive computations
+- Children: Use `{@render children?.()}` for slot content
+- Event handlers: Still use `on:click`, no changes there
 
 ## Notes
 
@@ -174,4 +480,5 @@ When reimplementing these improvements:
 - Focus on incremental improvements with proper testing
 - Consider feature flags for gradual rollout
 - Keep documentation updated as features are reimplemented
+- Test WebSocket connections thoroughly after each migration phase
 

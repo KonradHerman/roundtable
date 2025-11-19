@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ErrRoomNotFound    = errors.New("room not found")
-	ErrRoomExists      = errors.New("room already exists")
-	ErrPlayerNotFound  = errors.New("player not found")
+	ErrRoomNotFound   = errors.New("room not found")
+	ErrRoomExists     = errors.New("room already exists")
+	ErrPlayerNotFound = errors.New("player not found")
 )
 
 // Store defines the interface for room persistence.

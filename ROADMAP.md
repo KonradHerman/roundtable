@@ -1,5 +1,7 @@
 # Cardless Development Roadmap
 
+> **Play at [cardless.games](https://cardless.games)**
+
 This is the focused development roadmap for Cardless, a party game platform that replaces physical cards with phones for in-person play.
 
 ## Design Philosophy
@@ -162,40 +164,39 @@ This preserves the joy and social nature of in-person party games while solving 
 
 ---
 
-## Phase 4: Automation Testing (Optional)
+## Phase 4: Frontend Framework Upgrade
 
-**Goal**: Make multi-player testing easier, enable regression testing
+**Goal**: Migrate to Svelte 5 for improved performance and developer experience
 
-**Priority: LOW - Only if needed for development speed**
+**Priority: MEDIUM - After Phase 2 complete and tested**
 
-### Considerations
-- Manual testing with 8 browser windows is tedious
-- Would speed up testing as we add Game #2, #3, etc.
-- Good for regression testing after making changes
+### Background
+The application currently uses Svelte 4 syntax. Svelte 5 introduces Runes, a more modern and predictable reactivity system. An earlier migration attempt was reverted due to networking issues (see `FUTURE_IMPROVEMENTS.md`).
 
-### Potential Approaches
-1. **Playwright Multi-Session Tests**
-   - Spin up multiple browser contexts
-   - Simulate multiple players joining and playing
-   - Test complete game flows end-to-end
-2. **Go Integration Tests**
-   - Test game logic directly (without UI)
-   - Validate action processing
-   - Test edge cases in isolation
-3. **WebSocket Client Simulator**
-   - Simulate multiple WebSocket clients
-   - Test server under load
-   - Verify event broadcasting
+### Migration Strategy
+Incremental migration in phases:
+1. **Stores** (game.ts → game.svelte.ts, session.ts, websocket.ts)
+2. **Layouts and Core Pages** (+layout.svelte, landing, create, join, room)
+3. **Werewolf Components** (WerewolfGame, NightPhase, DayPhase, etc.)
+4. **UI Components** (button, card, badge, etc.)
 
-### Tasks (If Pursuing)
-- [ ] Set up Playwright test environment
-- [ ] Create multi-player test scenarios
-- [ ] Test critical flows (lobby → game → results)
-- [ ] Add to CI/CD pipeline
+### Key Changes
+- `$:` reactive declarations → `$derived` rune
+- `let` state → `$state` rune
+- `export let` props → `$props()` rune
+- Writable stores → `.svelte.ts` files with runes
+- Store subscriptions → Direct reactivity
 
-**Decision Point**: Implement only if manual testing becomes too burdensome
+### Testing Requirements
+- Test each phase independently
+- Verify WebSocket connections on all pages
+- Test full game flow after each phase
+- Test on multiple devices/browsers
+- Have rollback plan ready
 
-**Estimated Time**: 2-3 days (if pursued)
+**Estimated Time**: 4-5 days (with careful testing)
+
+See detailed migration plan in `FUTURE_IMPROVEMENTS.md`
 
 ---
 
@@ -271,12 +272,51 @@ This preserves the joy and social nature of in-person party games while solving 
 
 ## Future Considerations
 
-### Additional Games (Phase 7+)
-Potential games to add after Avalon validates the platform:
-- **Bohnanza** (trading card game)
-- **Coup** (bluffing game)
-- **Secret Hitler** (social deduction)
-- **Resistance** (similar to Avalon)
+## Phase 7: Additional Games
+
+**Goal**: Expand game library to prove platform versatility
+
+**Priority: MEDIUM - After Avalon validates architecture**
+
+### Planned Games
+
+#### High Priority
+- **Spyfall** - Location deduction with question/answer rounds
+  - Unique spy/location mechanic
+  - Timer-based rounds
+  - Question tracking UI
+  - Estimated time: 3-4 days
+
+- **Skull** - Pure bluffing and bidding
+  - Card stacking mechanics
+  - Bidding system
+  - Simple rules, deep strategy
+  - Estimated time: 2-3 days
+
+#### Medium Priority
+- **Wavelength** - Team spectrum guessing
+  - Dial/spectrum UI component
+  - Team-based scoring
+  - Clue-giving system
+  - Estimated time: 3-4 days
+
+- **Coup** - Bluffing and deduction
+  - Character abilities
+  - Challenge system
+  - Coins and actions
+  - Estimated time: 3-4 days
+
+#### Future Consideration
+- **Secret Hitler** - Policy and social deduction
+- **Love Letter** - Card drafting
+- **Cockroach Poker** - Pure bluffing
+- **Bohnanza** - Trading mechanics
+
+See `GAMES_ROADMAP.md` for detailed implementation plans.
+
+---
+
+## Phase 8: Advanced Features
 
 ### Features (Low Priority)
 - Game history/statistics
@@ -284,6 +324,8 @@ Potential games to add after Avalon validates the platform:
 - Custom role configurations
 - Sound effects and haptic feedback
 - Multiple languages
+- Spectator mode
+- Game replays
 
 ---
 
@@ -295,11 +337,13 @@ Potential games to add after Avalon validates the platform:
 - ✅ **Winner calculation**: Manual (players determine together)
 - ✅ **Board/spectator view**: Not a priority for MVP
 - ✅ **Play again**: Must implement (keep players in room)
+- ✅ **Deployment**: Railway for production (cardless.games)
+- ✅ **Next games**: Avalon, then Spyfall, Skull, Wavelength
 
 ### Open Questions ❓
-- ❓ When to implement automation testing?
-- ❓ What game to implement after Avalon?
-- ❓ Self-hosted vs cloud deployment?
+- ❓ When to migrate to Svelte 5? (After Phase 2 complete)
+- ❓ When to implement Redis? (When scaling beyond 100s of concurrent games)
+- ❓ PWA features priority? (After Phase 3)
 
 ---
 
@@ -307,10 +351,11 @@ Potential games to add after Avalon validates the platform:
 
 1. **Current focus**: Phase 2 (Digital Night Actions)
 2. **Next**: Phase 3 (Polish & Stability)
-3. **Then**: Validate with second game (Phase 5)
-4. **Finally**: Production deployment (Phase 6)
+3. **Then**: Phase 4 (Svelte 5 Migration)
+4. **After that**: Phase 5 (Avalon) to validate multi-game architecture
+5. **Long-term**: Phases 6-8 (Production ready, more games, advanced features)
 
-Update this document as priorities shift and new information emerges.
+This roadmap is a living document. Update as priorities shift and new information emerges.
 
-Last updated: November 2025
+**Last updated**: November 2024
 

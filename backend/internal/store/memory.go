@@ -101,7 +101,7 @@ func (s *MemoryStore) CleanupStaleRooms() error {
 	for roomCode, room := range s.rooms {
 		// Get room info safely with internal locking
 		status, createdAt, anyConnected := room.GetCleanupInfo()
-		
+
 		// Delete finished rooms older than 1 hour
 		if status == core.RoomStatusFinished && time.Since(createdAt) > 1*time.Hour {
 			toDelete = append(toDelete, roomCode)
