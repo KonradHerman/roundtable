@@ -336,9 +336,11 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		OriginPatterns: allowedOrigins,
 	})
 	if err != nil {
-		slog.Error("failed to upgrade WebSocket", "error", err, "remoteAddr", r.RemoteAddr)
+		slog.Info("failed to upgrade WebSocket", "error", err, "remoteAddr", r.RemoteAddr, "roomCode", roomCode, "origin", r.Header.Get("Origin"))
 		return
 	}
+
+	slog.Info("WebSocket upgraded successfully", "roomCode", roomCode, "remoteAddr", r.RemoteAddr)
 
 	// Handle connection
 	s.connMgr.HandleConnection(r.Context(), conn, roomCode)

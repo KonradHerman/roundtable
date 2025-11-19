@@ -46,14 +46,15 @@ func (cm *ConnectionManager) HandleConnection(ctx context.Context, conn *websock
 	// The message size limit is handled by the library's default (32KB)
 	// For larger messages, the library will automatically stream them
 
-	// Set 10-second timeout for auth message
-	authCtx, authCancel := context.WithTimeout(ctx, 10*time.Second)
+	// Create a context with a longer timeout for auth (30 seconds)
+	// Railway's network can have higher latency for initial messages
+	authCtx, authCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer authCancel()
 
 	// First, client must authenticate with session token
 	var authMsg ClientMessage
 	if err := wsjson.Read(authCtx, conn, &authMsg); err != nil {
-		slog.Error("failed to read auth message", "error", err)
+		slog.Info("failed to read auth message", "error", err, "roomCode", roomCode)
 		conn.Close(websocket.StatusPolicyViolation, "authentication required")
 		return
 	}
