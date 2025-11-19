@@ -22,6 +22,16 @@ function normalizeApiUrl(url: string): string {
 
 const API_BASE = normalizeApiUrl(import.meta.env.VITE_API_URL || '/api');
 
+// Log API configuration on startup (helps debugging Railway deployments)
+if (typeof window !== 'undefined') {
+	console.log('[API Client] Configuration:', {
+		VITE_API_URL: import.meta.env.VITE_API_URL || '(not set)',
+		API_BASE,
+		mode: import.meta.env.MODE,
+		isDev: import.meta.env.DEV
+	});
+}
+
 export interface CreateRoomRequest {
 	gameType: string;
 	displayName: string;
@@ -106,11 +116,36 @@ async function request<T>(
 		if (err instanceof APIError) {
 			throw err;
 		}
+
 		// Network errors or other fetch failures
-		if (err instanceof TypeError && err.message.includes('fetch')) {
-			throw new APIError(0, `Cannot connect to backend server at ${API_BASE}. Please ensure:\n1. Backend is running (go run cmd/server/main.go in backend/)\n2. Backend is accessible at ${API_BASE}\n3. You're accessing the frontend at http://localhost:5173`);
+		const errorMessage = err instanceof Error ? err.message : String(err);
+
+		// Detect if we're in production (Railway) without VITE_API_URL set
+		const isProduction = import.meta.env.PROD;
+		const hasApiUrl = !!import.meta.env.VITE_API_URL;
+
+		if (!hasApiUrl && isProduction && API_BASE === '/api') {
+			throw new APIError(0,
+				`Backend configuration error: VITE_API_URL environment variable is not set.\n\n` +
+				`In Railway, you need to:\n` +
+				`1. Go to your frontend service settings\n` +
+				`2. Add environment variable: VITE_API_URL\n` +
+				`3. Set it to your backend URL (e.g., https://your-backend.up.railway.app/api)\n` +
+				`4. Redeploy the frontend\n\n` +
+				`Original error: ${errorMessage}`
+			);
 		}
-		throw new APIError(0, `Request failed: ${err instanceof Error ? err.message : String(err)}`);
+
+		if (err instanceof TypeError && errorMessage.includes('fetch')) {
+			throw new APIError(0,
+				`Cannot connect to backend server at ${API_BASE}.\n\n` +
+				`Development: Ensure backend is running (go run cmd/server/main.go in backend/)\n` +
+				`Production: Verify VITE_API_URL points to your backend service\n\n` +
+				`Error: ${errorMessage}`
+			);
+		}
+
+		throw new APIError(0, `Request failed: ${errorMessage}`);
 	}
 }
 
