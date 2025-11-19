@@ -414,7 +414,7 @@ This is your personal project, but if you want to collaborate:
 
 ## 📜 License
 
-MIT (or your preferred license)
+[CC BY-NC 4.0](LICENSE) - Creative Commons Attribution-NonCommercial 4.0 International
 
 ---
 
