@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { CardBack, Button } from '$lib/components/ui';
+	import { CardBack } from '$lib/components/ui';
+	import RoleCard from './RoleCard.svelte';
 	
 	export let cards: number[] = [0, 1, 2];
 	export let selectedCards: number[] = [];
@@ -11,23 +12,6 @@
 	function handleCardClick(index: number) {
 		if (mode === 'reveal') return;
 		onSelect(index);
-	}
-
-	const roleInfo: Record<string, { emoji: string; color: string }> = {
-		werewolf: { emoji: '🐺', color: 'bg-red-600' },
-		seer: { emoji: '🔮', color: 'bg-purple-600' },
-		robber: { emoji: '🎭', color: 'bg-blue-600' },
-		troublemaker: { emoji: '😈', color: 'bg-orange-600' },
-		mason: { emoji: '🔨', color: 'bg-gray-600' },
-		villager: { emoji: '👤', color: 'bg-green-600' },
-		minion: { emoji: '😤', color: 'bg-red-700' },
-		tanner: { emoji: '🤪', color: 'bg-yellow-600' },
-		drunk: { emoji: '🍺', color: 'bg-amber-600' },
-		insomniac: { emoji: '😴', color: 'bg-purple-700' }
-	};
-
-	function getRoleInfo(role: string) {
-		return roleInfo[role] || { emoji: '❓', color: 'bg-muted' };
 	}
 </script>
 
@@ -50,20 +34,13 @@
 				</div>
 
 				<!-- Card Front -->
-				{#if isFlipped && info}
-					<div class="card-face card-front {info.color}">
-						<div class="center-card-front p-4 rounded-lg flex flex-col items-center justify-center text-white">
-							<div class="text-5xl mb-2">
-								{info.emoji}
-							</div>
-							<p class="text-sm font-bold capitalize text-center">
-								{role.replace('_', ' ')}
-							</p>
-						</div>
+				{#if isFlipped && role}
+					<div class="card-face card-front">
+						<RoleCard {role} size="small" />
 					</div>
 				{:else}
 					<div class="card-face card-front bg-card">
-						<div class="center-card-front p-4 rounded-lg border-2 border-primary flex items-center justify-center">
+						<div class="center-card-front p-4 rounded-2xl border-2 border-primary flex items-center justify-center">
 							<p class="text-xs text-muted-foreground">Card {index + 1}</p>
 						</div>
 					</div>

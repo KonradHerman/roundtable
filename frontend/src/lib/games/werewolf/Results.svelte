@@ -4,10 +4,10 @@
 	import { Card, Badge, Button } from '$lib/components/ui';
 	import { Trophy, Skull } from 'lucide-svelte';
 	import { confetti } from '@neoconfetti/svelte';
+	import { api } from '$lib/api/client';
+	import { getRoleInfo } from './roleConfig';
 
 	export let roomState: any;
-	
-	import { api } from '$lib/api/client';
 	
 	let gameResults: any = null;
 	let allRoles: Record<string, string> = {};
@@ -22,7 +22,7 @@
 		$game.events.forEach(event => {
 			if (event.type === 'roles_revealed') {
 				// Roles revealed for display (this is the main result screen)
-				allRoles = event.payload.roles || {};
+				allRoles = event.payload.roles || event.payload || {};
 				// If we don't have roles yet and game finished event came first, use those
 				if (Object.keys(allRoles).length === 0 && gameResults?.finalState?.roles) {
 					allRoles = gameResults.finalState.roles;
@@ -55,19 +55,7 @@
 	}
 
 	function getRoleEmoji(role: string): string {
-		const emojis: Record<string, string> = {
-			werewolf: '🐺',
-			seer: '🔮',
-			robber: '🎭',
-			troublemaker: '😈',
-			mason: '🔨',
-			villager: '👤',
-			minion: '😤',
-			tanner: '🤪',
-			drunk: '🍺',
-			insomniac: '😴'
-		};
-		return emojis[role] || '❓';
+		return getRoleInfo(role).emoji;
 	}
 
 	$: didIWin = winners.includes($session?.playerId || '');

@@ -598,8 +598,9 @@ func (g *Game) GetPhase() core.GamePhase {
 }
 
 // IsFinished returns true if the game has concluded.
+// Results phase is still part of the active game (showing roles before play again)
 func (g *Game) IsFinished() bool {
-	return g.phase == PhaseResults
+	return false // Game is only finished when explicitly reset
 }
 
 // GetResults returns the final game results.

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, CardBack } from '$lib/components/ui';
+	import { getRoleInfo } from './roleConfig';
 
 	export let role: string;
 	export let acknowledged: boolean = false;
@@ -10,75 +11,7 @@
 	let cardFlipped = false;
 	let readyToAcknowledge = false;
 
-	const roleInfo: Record<string, { emoji: string; team: string; description: string; color: string }> = {
-		werewolf: {
-			emoji: '🐺',
-			team: 'Werewolf Team',
-			description: 'Find your fellow werewolves and survive the vote',
-			color: 'bg-gruvbox-red'
-		},
-		seer: {
-			emoji: '🔮',
-			team: 'Village Team',
-			description: 'Look at one player\'s role to help find the werewolves',
-			color: 'bg-gruvbox-purple'
-		},
-		robber: {
-			emoji: '🎭',
-			team: 'Village Team',
-			description: 'Swap roles with another player',
-			color: 'bg-gruvbox-blue'
-		},
-		troublemaker: {
-			emoji: '😈',
-			team: 'Village Team',
-			description: 'Swap two other players\' roles',
-			color: 'bg-gruvbox-orange'
-		},
-		mason: {
-			emoji: '🔨',
-			team: 'Village Team',
-			description: 'Know who the other mason is',
-			color: 'bg-muted'
-		},
-		villager: {
-			emoji: '👤',
-			team: 'Village Team',
-			description: 'Use your wits to find the werewolves',
-			color: 'bg-gruvbox-green'
-		},
-		minion: {
-			emoji: '😤',
-			team: 'Werewolf Team',
-			description: 'Know the werewolves but they don\'t know you',
-			color: 'bg-gruvbox-red'
-		},
-		tanner: {
-			emoji: '🤪',
-			team: 'Solo',
-			description: 'You win if YOU get eliminated',
-			color: 'bg-gruvbox-yellow'
-		},
-		drunk: {
-			emoji: '🍺',
-			team: 'Village Team',
-			description: 'You must swap your role but won\'t know your new role',
-			color: 'bg-gruvbox-orange'
-		},
-		insomniac: {
-			emoji: '😴',
-			team: 'Village Team',
-			description: 'Wake up last to see if your role changed',
-			color: 'bg-gruvbox-purple-light'
-		}
-	};
-
-	$: info = roleInfo[role] || {
-		emoji: '❓',
-		team: 'Unknown',
-		description: 'Unknown role',
-		color: 'bg-muted'
-	};
+	$: info = getRoleInfo(role);
 
 	function handleShowRole() {
 		if (!cardFlipped) {
@@ -113,9 +46,9 @@
 					</div>
 				</div>
 
-				<!-- Card Front -->
-				<div class="card-face card-front {info.color}">
-					<div class="game-card p-8 rounded-2xl flex flex-col items-center justify-between text-white">
+			<!-- Card Front -->
+			<div class="card-face card-front {info.color} rounded-2xl">
+				<div class="game-card p-8 flex flex-col items-center justify-between text-white">
 						<div class="flex-1 flex flex-col items-center justify-center space-y-6 w-full">
 							<!-- Role emoji -->
 							<div class="text-8xl">
