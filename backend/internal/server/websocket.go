@@ -139,31 +139,34 @@ func (cm *ConnectionManager) HandleConnection(ctx context.Context, conn *websock
 
 	// Start read and write pumps
 	go connection.writePump()
-	connection.readPump(cm, room)
+	go connection.readPump(cm, room)
 
-	// Cleanup on disconnect
-	cm.handleDisconnect(connection, room)
+	// Connection lifecycle is now managed by the pumps
+	// They will call handleDisconnect when they exit
 }
 
 // readPump reads messages from the WebSocket connection.
 func (c *Connection) readPump(cm *ConnectionManager, room *core.Room) {
-	defer c.cancel()
+	defer func() {
+		c.cancel()
+		cm.handleDisconnect(c, room)
+	}()
 
 	for {
 		var msg ClientMessage
 		// Use the connection context without additional timeout
-		// The writePump's ping will keep the connection alive
+		// The writePump's heartbeat will keep the connection alive
 		// Railway and the websocket library handle timeouts at a lower level
 		err := wsjson.Read(c.ctx, c.Conn, &msg)
 
 		if err != nil {
 			if c.ctx.Err() != nil {
 				// Context cancelled, clean shutdown
-				slog.Info("connection context cancelled", "playerID", c.PlayerID)
+				slog.Info("read: connection context cancelled", "playerID", c.PlayerID)
 				return
 			}
 			// Log the specific error for debugging
-			slog.Info("read error, closing connection", "playerID", c.PlayerID, "error", err)
+			slog.Info("read: closing connection", "playerID", c.PlayerID, "error", err)
 			return
 		}
 
@@ -174,10 +177,20 @@ func (c *Connection) readPump(cm *ConnectionManager, room *core.Room) {
 
 // writePump sends messages to the WebSocket connection.
 func (c *Connection) writePump() {
-	// Use 10-second heartbeat interval for Railway compatibility
+	// Use 5-second heartbeat interval for Railway compatibility
 	// Send application-level heartbeat messages which proxies recognize as activity
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
+
+	// Send immediate heartbeat to establish activity
+	heartbeat, _ := NewHeartbeatMessage()
+	ctx, cancel := context.WithTimeout(c.ctx, 5*time.Second)
+	if err := wsjson.Write(ctx, c.Conn, heartbeat); err != nil {
+		cancel()
+		slog.Info("write: initial heartbeat failed", "playerID", c.PlayerID, "error", err)
+		return
+	}
+	cancel()
 
 	for {
 		select {
@@ -187,7 +200,7 @@ func (c *Connection) writePump() {
 			cancel()
 
 			if err != nil {
-				slog.Info("write error, closing connection", "playerID", c.PlayerID, "error", err)
+				slog.Info("write: message failed", "playerID", c.PlayerID, "error", err)
 				return
 			}
 
@@ -200,12 +213,12 @@ func (c *Connection) writePump() {
 			cancel()
 
 			if err != nil {
-				slog.Info("heartbeat failed, closing connection", "playerID", c.PlayerID, "error", err)
+				slog.Info("write: heartbeat failed", "playerID", c.PlayerID, "error", err)
 				return
 			}
 
 		case <-c.ctx.Done():
-			slog.Info("write pump context done", "playerID", c.PlayerID)
+			slog.Info("write: context done", "playerID", c.PlayerID)
 			return
 		}
 	}
