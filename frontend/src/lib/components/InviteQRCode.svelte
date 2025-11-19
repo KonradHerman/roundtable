@@ -87,9 +87,9 @@
 <div class="space-y-4">
 	<!-- QR Code Display -->
 	<div
-		class="bg-card rounded-2xl shadow-xl p-6 flex items-center justify-center border-2 border-border/50"
+		class="bg-card rounded-2xl shadow-xl p-4 flex items-center justify-center border-2 border-border/50"
 	>
-		<div bind:this={qrContainer} class="rounded-xl max-w-full"></div>
+		<div bind:this={qrContainer} class="rounded-xl w-full flex justify-center"></div>
 	</div>
 
 	<!-- Info text with click to copy -->
@@ -117,5 +117,6 @@
 		max-width: 100%;
 		height: auto;
 		display: block;
+		margin: 0 auto;
 	}
 </style>
