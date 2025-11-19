@@ -30,6 +30,7 @@
 		"bits-ui": "^0.21.13",
 		"clsx": "^2.1.1",
 		"lucide-svelte": "^0.447.0",
+		"qr-code-styling": "^1.9.2",
 		"qrcode": "^1.5.3",
 		"tailwind-merge": "^2.5.4",
 		"tailwind-variants": "^0.2.1"
