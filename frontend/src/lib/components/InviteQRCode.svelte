@@ -87,9 +87,9 @@
 <div class="space-y-4">
 	<!-- QR Code Display -->
 	<div
-		class="bg-card rounded-2xl shadow-xl p-6 flex items-center justify-center overflow-hidden border-2 border-border/50"
+		class="bg-card rounded-2xl shadow-xl p-6 flex items-center justify-center border-2 border-border/50"
 	>
-		<div bind:this={qrContainer} class="rounded-xl overflow-hidden"></div>
+		<div bind:this={qrContainer} class="rounded-xl max-w-full"></div>
 	</div>
 
 	<!-- Info text with click to copy -->
@@ -111,8 +111,11 @@
 </div>
 
 <style>
-	/* Ensure QR code canvas inherits border radius */
+	/* Ensure QR code canvas inherits border radius and fits properly */
 	:global(.qr-code-styling canvas) {
 		border-radius: 0.75rem;
+		max-width: 100%;
+		height: auto;
+		display: block;
 	}
 </style>
