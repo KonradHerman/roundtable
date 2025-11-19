@@ -43,13 +43,12 @@ const (
 	ServerMsgEvents        = "events" // Batch for reconnection
 	ServerMsgError         = "error"
 	ServerMsgPong          = "pong"
-	ServerMsgHeartbeat     = "heartbeat" // Keep-alive for proxies
 )
 
 // AuthenticatedPayload confirms successful authentication.
 type AuthenticatedPayload struct {
-	PlayerID  string          `json:"playerId"`
-	RoomState core.RoomState  `json:"roomState"`
+	PlayerID  string         `json:"playerId"`
+	RoomState core.RoomState `json:"roomState"`
 }
 
 // RoomStatePayload contains current room state.
@@ -119,8 +118,4 @@ func NewErrorMessage(errMsg string) (ServerMessage, error) {
 
 func NewPongMessage() (ServerMessage, error) {
 	return ServerMessage{Type: ServerMsgPong}, nil
-}
-
-func NewHeartbeatMessage() (ServerMessage, error) {
-	return ServerMessage{Type: ServerMsgHeartbeat}, nil
 }

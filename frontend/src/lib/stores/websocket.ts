@@ -65,33 +65,21 @@ function createWebSocketStore(roomCode: string, sessionToken: string) {
 		ws = new WebSocket(wsUrl);
 
 		ws.onopen = () => {
-			console.log('WebSocket connected, sending auth...');
+			console.log('WebSocket connected');
 			reconnectAttempts = 0;
 
-			// Send authentication message immediately
-			// Don't use send() function to avoid readyState check
-			try {
-				ws!.send(JSON.stringify({
-					type: 'authenticate',
-					payload: { sessionToken }
-				}));
-				console.log('Auth message sent');
-				updateStatus('connected');
-			} catch (err) {
-				console.error('Failed to send auth message:', err);
-				ws!.close();
-			}
+			// Send authentication message
+			send({
+				type: 'authenticate',
+				payload: { sessionToken }
+			});
+
+			updateStatus('connected');
 		};
 
 		ws.onmessage = (event) => {
 			try {
 				const message: ServerMessage = JSON.parse(event.data);
-
-				// Ignore heartbeat messages (keep-alive)
-				if (message.type === 'heartbeat') {
-					return;
-				}
-
 				console.log('WebSocket message:', message);
 
 				update((state) => ({

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -334,9 +333,9 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// Upgrade connection with origin restrictions
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns:      allowedOrigins,
-		CompressionMode:     websocket.CompressionContextTakeover,
-		InsecureSkipVerify:  false,
+		OriginPatterns:     allowedOrigins,
+		CompressionMode:    websocket.CompressionContextTakeover,
+		InsecureSkipVerify: false,
 	})
 	if err != nil {
 		slog.Info("failed to upgrade WebSocket", "error", err, "remoteAddr", r.RemoteAddr, "roomCode", roomCode, "origin", r.Header.Get("Origin"))
@@ -345,8 +344,8 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("WebSocket upgraded successfully", "roomCode", roomCode, "remoteAddr", r.RemoteAddr)
 
-	// Handle connection in a detached goroutine to prevent HTTP handler from blocking
-	go s.connMgr.HandleConnection(context.Background(), conn, roomCode)
+	// Handle connection
+	s.connMgr.HandleConnection(r.Context(), conn, roomCode)
 }
 
 // HandleGetRoom returns room information.
