@@ -1,10 +1,11 @@
 # 🎲 Cardless
 
+
+[![Play Live](https://img.shields.io/badge/Play_Live-cardless.games-orange?style=for-the-badge&logo=gamepad)](https://cardless.games)
+
 **Play party games without the cards.**
 
 Cardless replaces physical cards with your phone for in-person party games. Create a room, share the code, and start playing—no shuffling, no lost pieces, no cheating.
-
-**🎮 [Play Now at cardless.games](https://cardless.games)**
 
 ---
 
