@@ -35,6 +35,19 @@ func parseAllowedOrigins(originsEnv string) []string {
 	return origins
 }
 
+// isRailwayOrigin checks if an origin is from Railway (*.up.railway.app)
+func isRailwayOrigin(origin string) bool {
+	// Remove protocol
+	withoutProtocol := strings.TrimPrefix(strings.TrimPrefix(origin, "https://"), "http://")
+	// Check if it ends with .up.railway.app
+	return strings.HasSuffix(withoutProtocol, ".up.railway.app")
+}
+
+// isRailwayEnvironment checks if we're running in Railway
+func isRailwayEnvironment() bool {
+	return os.Getenv("RAILWAY_ENVIRONMENT") != "" || os.Getenv("RAILWAY_PROJECT_ID") != ""
+}
+
 func main() {
 	// Set up structured logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -86,6 +99,8 @@ func main() {
 		}
 	}
 
+	inRailway := isRailwayEnvironment()
+
 	var c *cors.Cors
 	if hasWildcard {
 		// If wildcard is used (not recommended for production with credentials), adjust options
@@ -96,17 +111,40 @@ func main() {
 			// AllowCredentials cannot be true with AllowedOrigins: []string{"*"}
 			AllowCredentials: false,
 		})
+		slog.Info("CORS configured with wildcard (credentials disabled)")
 	} else {
+		// Custom origin validator: allow configured origins + Railway domains in Railway environment
+		allowOriginFunc := func(origin string) bool {
+			// Check if origin is in the allowed list
+			for _, allowed := range allowedOrigins {
+				if allowed == origin {
+					return true
+				}
+			}
+
+			// In Railway environment, also allow any *.up.railway.app origin
+			if inRailway && isRailwayOrigin(origin) {
+				slog.Info("allowing Railway origin", "origin", origin)
+				return true
+			}
+
+			return false
+		}
+
 		c = cors.New(cors.Options{
-			AllowedOrigins:   allowedOrigins,
+			AllowOriginFunc:  allowOriginFunc,
 			AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 			AllowedHeaders:   []string{"Content-Type", "X-Session-Token"},
 			AllowCredentials: true,
 			Debug:            os.Getenv("CORS_DEBUG") == "true",
 		})
-	}
 
-	slog.Info("CORS configured", "allowed_origins", allowedOrigins)
+		if inRailway {
+			slog.Info("CORS configured for Railway", "allowed_origins", allowedOrigins, "railway_wildcard", "*.up.railway.app")
+		} else {
+			slog.Info("CORS configured", "allowed_origins", allowedOrigins)
+		}
+	}
 
 	handler := c.Handler(mux)
 

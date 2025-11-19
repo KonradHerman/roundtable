@@ -6,12 +6,14 @@
 
 The backend requires the following environment variables to be set in Railway:
 
-#### Required
+#### Optional (but Recommended)
 
 - **`ALLOWED_ORIGIN`**: Comma-separated list of allowed frontend origins for CORS
   - Format: `https://your-frontend.up.railway.app,https://another-domain.com`
   - Example: `https://roundtable-frontend-production.up.railway.app`
-  - **IMPORTANT**: Set this to your frontend's Railway URL
+  - **NOTE**: When running on Railway, **all `*.up.railway.app` domains are automatically allowed**
+  - This means PR deployments work automatically without configuration
+  - Set this variable if you want to allow custom domains (e.g., `https://yourdomain.com`)
   - For multiple origins, separate with commas: `https://domain1.com,https://domain2.com`
   - For development: `http://localhost:5173`
   - For wildcard (not recommended with credentials): `*`
@@ -59,27 +61,48 @@ railway variables --set VITE_API_URL=https://your-backend.up.railway.app/api
 ## CORS Configuration
 
 The backend now supports:
+- ✅ **Railway-aware CORS**: Automatically allows all `*.up.railway.app` origins when running on Railway
+- ✅ **PR Deployment Support**: PR deployments work without manual CORS configuration
 - ✅ Multiple comma-separated origins
 - ✅ Automatic whitespace trimming
 - ✅ Development default (`http://localhost:5173`)
 - ✅ Wildcard support (not recommended for production with credentials)
 - ✅ Debug logging with `CORS_DEBUG=true`
 
+### How Railway-Aware CORS Works
+
+When the backend detects it's running on Railway (via `RAILWAY_ENVIRONMENT` or `RAILWAY_PROJECT_ID` environment variables), it automatically allows any origin ending in `.up.railway.app`. This means:
+
+1. **PR deployments work automatically** - No need to configure CORS for each PR
+2. **Multiple Railway services can communicate** - Frontend and backend on different Railway services work out of the box
+3. **Custom domains still need configuration** - If you use a custom domain, add it to `ALLOWED_ORIGIN`
+
+The backend logs which origins are allowed on startup, making it easy to debug CORS issues.
+
 ### Example CORS Configurations
 
-#### Single Origin (Production)
+#### Railway Deployment (Recommended - No Configuration Needed!)
 ```bash
-ALLOWED_ORIGIN=https://roundtable-frontend-production.up.railway.app
+# No ALLOWED_ORIGIN needed! All *.up.railway.app domains work automatically
+# Railway backend will allow any *.up.railway.app origin
 ```
 
-#### Multiple Origins
+#### Custom Domain
+```bash
+ALLOWED_ORIGIN=https://yourdomain.com
+# Railway origins (*.up.railway.app) still work automatically
+```
+
+#### Multiple Custom Domains
 ```bash
 ALLOWED_ORIGIN=https://roundtable.com,https://www.roundtable.com,https://app.roundtable.com
+# Railway origins (*.up.railway.app) still work automatically
 ```
 
 #### Development + Production
 ```bash
-ALLOWED_ORIGIN=http://localhost:5173,https://roundtable-frontend-production.up.railway.app
+ALLOWED_ORIGIN=http://localhost:5173,https://yourdomain.com
+# Railway origins (*.up.railway.app) still work automatically
 ```
 
 #### Wildcard (Development Only)
@@ -88,22 +111,54 @@ ALLOWED_ORIGIN=*
 ```
 ⚠️ Note: Using `*` disables credentials (cookies/auth headers)
 
+## PR Deployments
+
+Railway PR deployments now work automatically! When you create a PR:
+
+1. Railway creates new services with unique URLs (e.g., `roundtable-backend-roundtable-pr-6.up.railway.app`)
+2. The backend automatically detects it's running on Railway
+3. All `*.up.railway.app` origins are allowed automatically
+4. Frontend can connect to backend without any configuration
+
+**No manual CORS configuration needed for PR deployments!**
+
 ## Troubleshooting CORS Issues
 
-### Issue: "CORS header 'Access-Control-Allow-Origin' missing"
+### Issue: "CORS header 'Access-Control-Allow-Origin' missing" on Railway
+
+**Cause**: This should NOT happen on Railway anymore! All `*.up.railway.app` origins are automatically allowed.
+
+**Solutions**:
+
+1. **Check backend logs** - Look for the "CORS configured" log message on startup:
+   ```
+   CORS configured for Railway allowed_origins=[...] railway_wildcard=*.up.railway.app
+   ```
+
+2. **Verify Railway detection** - Check if the backend detects Railway environment:
+   - Look for Railway environment variables: `RAILWAY_ENVIRONMENT` or `RAILWAY_PROJECT_ID`
+   - Backend logs should show "CORS configured for Railway"
+
+3. **Enable debug mode** - Set `CORS_DEBUG=true` to see detailed CORS processing
+
+4. **Check if using custom domain** - If your frontend uses a custom domain (not `*.up.railway.app`):
+   ```bash
+   # Add your custom domain to ALLOWED_ORIGIN
+   ALLOWED_ORIGIN=https://yourdomain.com
+   ```
+
+### Issue: "CORS header 'Access-Control-Allow-Origin' missing" (Non-Railway)
 
 **Cause**: The frontend origin is not in the backend's `ALLOWED_ORIGIN` list.
 
 **Solution**:
 1. Check your frontend URL (the domain making the request)
 2. Add it to the backend's `ALLOWED_ORIGIN` environment variable
-3. Redeploy the backend service
+3. Restart the backend service
 
 **Example**:
 ```bash
-# If your frontend is at: https://roundtable-frontend-xyz.up.railway.app
-# Set backend ALLOWED_ORIGIN to:
-ALLOWED_ORIGIN=https://roundtable-frontend-xyz.up.railway.app
+ALLOWED_ORIGIN=https://yourdomain.com,http://localhost:5173
 ```
 
 ### Issue: "CORS request did not succeed"
