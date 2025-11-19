@@ -369,18 +369,52 @@ func (s *Server) HandleGetRoom(w http.ResponseWriter, r *http.Request) {
 
 // getWebSocketOrigins returns allowed WebSocket origin patterns from environment.
 func getWebSocketOrigins() []string {
-	originsEnv := os.Getenv("ALLOWED_ORIGINS")
+	// Check if we're running on Railway
+	inRailway := os.Getenv("RAILWAY_ENVIRONMENT") != "" || os.Getenv("RAILWAY_PROJECT_ID") != ""
+
+	// Start with configured origins (use ALLOWED_ORIGIN for consistency with CORS)
+	originsEnv := os.Getenv("ALLOWED_ORIGIN")
 	if originsEnv == "" {
+		originsEnv = os.Getenv("ALLOWED_ORIGINS") // Fallback to plural for backwards compatibility
+	}
+
+	patterns := []string{}
+
+	// Parse configured origins
+	if originsEnv != "" {
+		origins := strings.Split(originsEnv, ",")
+		for _, origin := range origins {
+			origin = strings.TrimSpace(origin)
+			if origin == "" {
+				continue
+			}
+
+			// If it's a wildcard, use it as-is
+			if origin == "*" {
+				return []string{"*"}
+			}
+
+			// Convert full URL to origin pattern
+			// Remove protocol (https:// or http://)
+			pattern := strings.TrimPrefix(strings.TrimPrefix(origin, "https://"), "http://")
+			patterns = append(patterns, pattern)
+		}
+	}
+
+	// In Railway environment, also allow all *.up.railway.app origins
+	if inRailway {
+		patterns = append(patterns, "*.up.railway.app")
+		slog.Info("WebSocket origins configured for Railway", "patterns", patterns)
+	} else {
 		// Dev default - allow localhost on any port
-		return []string{"localhost:*", "127.0.0.1:*"}
+		if len(patterns) == 0 {
+			patterns = []string{"localhost:*", "127.0.0.1:*"}
+		} else {
+			// Add localhost to custom patterns for development
+			patterns = append(patterns, "localhost:*", "127.0.0.1:*")
+		}
+		slog.Info("WebSocket origins configured", "patterns", patterns)
 	}
-	
-	// Split comma-separated origins
-	origins := strings.Split(originsEnv, ",")
-	// Trim whitespace from each origin
-	for i, origin := range origins {
-		origins[i] = strings.TrimSpace(origin)
-	}
-	
-	return origins
+
+	return patterns
 }
