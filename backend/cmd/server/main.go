@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/rs/cors"
@@ -13,6 +14,26 @@ import (
 	"github.com/yourusername/roundtable/internal/server"
 	"github.com/yourusername/roundtable/internal/store"
 )
+
+// parseAllowedOrigins parses comma-separated origins from environment variable
+// and trims whitespace from each origin
+func parseAllowedOrigins(originsEnv string) []string {
+	if originsEnv == "" {
+		return nil
+	}
+
+	parts := strings.Split(originsEnv, ",")
+	origins := make([]string, 0, len(parts))
+
+	for _, origin := range parts {
+		trimmed := strings.TrimSpace(origin)
+		if trimmed != "" {
+			origins = append(origins, trimmed)
+		}
+	}
+
+	return origins
+}
 
 func main() {
 	// Set up structured logger
@@ -51,22 +72,23 @@ func main() {
 	})
 
 	// CORS middleware (rs/cors)
-	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
-	if allowedOrigin == "" {
-		allowedOrigin = "http://localhost:5173" // Dev default
+	allowedOrigins := parseAllowedOrigins(os.Getenv("ALLOWED_ORIGIN"))
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"http://localhost:5173"} // Dev default
 	}
 
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{allowedOrigin},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "X-Session-Token"},
-		AllowCredentials: true,
-		// Add Debug: true during dev if needed, but false for production
-		Debug: false,
-	})
+	// Check if wildcard is used
+	hasWildcard := false
+	for _, origin := range allowedOrigins {
+		if origin == "*" {
+			hasWildcard = true
+			break
+		}
+	}
 
-	// If wildcard is used (not recommended for production with credentials), adjust options
-	if allowedOrigin == "*" {
+	var c *cors.Cors
+	if hasWildcard {
+		// If wildcard is used (not recommended for production with credentials), adjust options
 		c = cors.New(cors.Options{
 			AllowedOrigins: []string{"*"},
 			AllowedMethods: []string{"GET", "POST", "OPTIONS"},
@@ -74,7 +96,17 @@ func main() {
 			// AllowCredentials cannot be true with AllowedOrigins: []string{"*"}
 			AllowCredentials: false,
 		})
+	} else {
+		c = cors.New(cors.Options{
+			AllowedOrigins:   allowedOrigins,
+			AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+			AllowedHeaders:   []string{"Content-Type", "X-Session-Token"},
+			AllowCredentials: true,
+			Debug:            os.Getenv("CORS_DEBUG") == "true",
+		})
 	}
+
+	slog.Info("CORS configured", "allowed_origins", allowedOrigins)
 
 	handler := c.Handler(mux)
 
