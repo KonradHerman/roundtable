@@ -283,19 +283,6 @@ Free for personal use. Contact for commercial licensing.
 
 ---
 
-## 🙏 Acknowledgments
-
-**Built with love for the party game community.**
-
-Inspired by:
-- **Jackbox Games** - Pioneering phone-as-controller party games
-- **Bezier Games** - One Night Werewolf and Ultimate Werewolf
-- **Don Eskridge** - The Resistance and Avalon
-
-Special thanks to everyone who playtests and provides feedback!
-
----
-
 ## 📞 Get in Touch
 
 - 🐛 Found a bug? [Open an issue](https://github.com/yourusername/cardless/issues)
