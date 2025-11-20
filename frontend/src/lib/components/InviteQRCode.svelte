@@ -1,19 +1,23 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import QRCodeStyling from 'qr-code-styling';
 	import { browser } from '$app/environment';
 
-	export let roomCode: string;
-	export let size = 280;
+	let {
+		roomCode,
+		size = 280
+	}: {
+		roomCode: string;
+		size?: number;
+	} = $props();
 
 	let qrContainer: HTMLDivElement;
 	let qrCode: QRCodeStyling | null = null;
-	let showCopied = false;
+	let showCopied = $state(false);
 
 	// Get the full invite URL
-	$: inviteUrl = browser ? `${window.location.origin}/join/${roomCode}` : '';
+	let inviteUrl = $derived(browser ? `${window.location.origin}/join/${roomCode}` : '');
 
-	onMount(() => {
+	$effect(() => {
 		if (!browser) return;
 
 		// Create QR code with soft aesthetic styling
@@ -97,7 +101,7 @@
 		<p class="text-sm text-muted-foreground">Scan to join the game</p>
 		<button
 			type="button"
-			on:click={copyInviteLink}
+			onclick={copyInviteLink}
 			class="group relative text-xs font-mono break-all px-4 py-2 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
 		>
 			<span class={showCopied ? 'text-primary' : 'text-muted-foreground/60'}>

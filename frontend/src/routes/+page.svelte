@@ -1,17 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 	import { api, type JoinRoomRequest } from '$lib/api/client';
 	import { session } from '$lib/stores/session.svelte';
 
-	let joinCode = '';
-	let displayName = '';
-	let loading = false;
-	let error = '';
+	let joinCode = $state('');
+	let displayName = $state('');
+	let loading = $state(false);
+	let error = $state('');
 
 	// Handle error from redirect (expired/invalid room)
-	onMount(() => {
+	$effect(() => {
 		const errorParam = $page.url.searchParams.get('error');
 		if (errorParam === 'room_expired') {
 			error = 'That room has ended';
@@ -86,7 +85,7 @@
 				</div>
 			</div>
 
-			<form on:submit|preventDefault={handleJoin} class="space-y-3">
+			<form onsubmit={(e) => { e.preventDefault(); handleJoin(); }} class="space-y-3">
 				{#if error}
 					<div class="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
 						<p class="text-sm text-destructive">{error}</p>

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { api, type JoinRoomRequest } from '$lib/api/client';
@@ -7,12 +6,12 @@
 	import { Card, Button } from '$lib/components/ui';
 	import { ArrowLeft } from 'lucide-svelte';
 
-	let roomCode = '';
-	let displayName = '';
-	let loading = false;
-	let error = '';
+	let roomCode = $state('');
+	let displayName = $state('');
+	let loading = $state(false);
+	let error = $state('');
 
-	onMount(() => {
+	$effect(() => {
 		// Get room code from URL query params
 		const code = $page.url.searchParams.get('code');
 		if (code) {
@@ -72,7 +71,7 @@
 		<Button
 			variant="ghost"
 			class="mb-6"
-			on:click={() => goto('/')}
+			onclick={() => goto('/')}
 		>
 			<ArrowLeft class="w-4 h-4 mr-2" />
 			Back
@@ -84,7 +83,7 @@
 				<p class="text-muted-foreground">Enter the room code and your name</p>
 			</div>
 
-			<form on:submit|preventDefault={handleJoin} class="space-y-5">
+			<form onsubmit={(e) => { e.preventDefault(); handleJoin(); }} class="space-y-5">
 				<!-- Room code -->
 				<div class="space-y-2">
 					<label for="code" class="block text-sm font-medium">

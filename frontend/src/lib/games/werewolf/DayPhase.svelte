@@ -2,7 +2,6 @@
 	import { session } from '$lib/stores/session.svelte';
 	import { Card, Button } from '$lib/components/ui';
 	import { Users, Clock, Play, Pause, Plus } from 'lucide-svelte';
-	import { onMount, onDestroy } from 'svelte';
 
 	let { roomState, wsStore, timerActive = false, phaseEndsAt = null } = $props<{
 		roomState: any;
@@ -18,7 +17,7 @@
 
 	// No voting events to track - voting is physical!
 
-	onMount(() => {
+	$effect(() => {
 		timerInterval = setInterval(() => {
 			if (timerActive && phaseEndsAt) {
 				const now = new Date().getTime();
@@ -28,10 +27,10 @@
 				timeRemaining = 0;
 			}
 		}, 100);
-	});
 
-	onDestroy(() => {
-		if (timerInterval) clearInterval(timerInterval);
+		return () => {
+			if (timerInterval) clearInterval(timerInterval);
+		};
 	});
 
 	function handleToggleTimer() {
@@ -95,7 +94,7 @@
 			{#if isHost}
 				<div class="flex gap-2">
 					<Button
-						on:click={handleToggleTimer}
+						onclick={handleToggleTimer}
 						variant="outline"
 						class="flex items-center gap-2"
 					>
@@ -110,7 +109,7 @@
 					
 					{#if timerActive}
 						<Button
-							on:click={handleExtendTimer}
+							onclick={handleExtendTimer}
 							variant="outline"
 							class="flex items-center gap-2"
 						>
@@ -168,7 +167,7 @@
 					When discussion is done and everyone has voted physically:
 				</p>
 				<Button
-					on:click={handleRevealRoles}
+					onclick={handleRevealRoles}
 					class="w-full h-12 bg-primary hover:bg-primary/90"
 				>
 					Reveal All Roles →

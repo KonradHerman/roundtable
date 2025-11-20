@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 	import { api, type JoinRoomRequest, APIError } from '$lib/api/client';
 	import { session } from '$lib/stores/session.svelte';
 
 	const roomCode = ($page.params.code || '').toUpperCase();
 
-	let displayName = '';
-	let loading = false;
-	let validating = true;
-	let error = '';
-	let roomValid = false;
+	let displayName = $state('');
+	let loading = $state(false);
+	let validating = $state(true);
+	let error = $state('');
+	let roomValid = $state(false);
 
-	onMount(async () => {
+	$effect(async () => {
 		// Validate room exists and is joinable
 		try {
 			const roomState = await api.getRoomState(roomCode);
@@ -124,7 +123,7 @@
 					</div>
 				</div>
 
-				<form on:submit|preventDefault={handleJoin} class="space-y-3">
+				<form onsubmit={(e) => { e.preventDefault(); handleJoin(); }} class="space-y-3">
 					<input
 						type="text"
 						bind:value={displayName}

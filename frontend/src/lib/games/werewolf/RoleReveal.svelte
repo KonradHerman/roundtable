@@ -82,7 +82,7 @@
 			<div class="space-y-3">
 				{#if !cardFlipped}
 					<Button
-						on:click={handleShowRole}
+						onclick={handleShowRole}
 						class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 					>
 						👁️ Show Role
@@ -93,14 +93,14 @@
 				{:else}
 					<div class="flex gap-3">
 						<Button
-							on:click={handleUnready}
+							onclick={handleUnready}
 							variant="outline"
 							class="flex-1 h-14 bg-card hover:bg-muted text-foreground font-bold text-lg border-2"
 						>
 							↺ Look Again
 						</Button>
 						<Button
-							on:click={handleReady}
+							onclick={handleReady}
 							class="flex-1 h-14 bg-green-600 hover:bg-green-700 text-white font-bold text-lg"
 						>
 							✓ Ready
