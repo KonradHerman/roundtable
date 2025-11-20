@@ -418,7 +418,7 @@
 							<Button
 								class="w-full h-14 text-lg"
 								disabled={!canStart}
-								on:click={handleStartGame}
+								onclick={handleStartGame}
 							>
 								Start Game
 							</Button>
@@ -460,7 +460,7 @@
 				<h1 class="text-2xl font-bold mb-4">Game Finished</h1>
 				<p class="text-muted-foreground">Results will appear here...</p>
 				{#if isHost}
-					<Button class="w-full mt-6" on:click={() => window.location.reload()}>
+					<Button class="w-full mt-6" onclick={() => window.location.reload()}>
 						Play Again
 					</Button>
 				{/if}
