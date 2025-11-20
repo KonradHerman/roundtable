@@ -5,16 +5,22 @@
 	 */
 	import { getRoleInfo } from './roleConfig';
 	
-	export let role: string;
-	export let size: 'small' | 'medium' | 'large' = 'medium';
-	export let showName: boolean = true;
+	let {
+		role,
+		size = 'medium',
+		showName = true
+	}: {
+		role: string;
+		size?: 'small' | 'medium' | 'large';
+		showName?: boolean;
+	} = $props();
 
-	$: info = getRoleInfo(role);
-	$: dimensions = {
+	let info = $derived(getRoleInfo(role));
+	let dimensions = $derived({
 		small: { width: '120px', height: '168px', emoji: 'text-5xl', text: 'text-sm' },
 		medium: { width: '200px', height: '280px', emoji: 'text-8xl', text: 'text-2xl' },
 		large: { width: '280px', height: '392px', emoji: 'text-9xl', text: 'text-3xl' }
-	}[size];
+	}[size]);
 </script>
 
 <div 

@@ -1,7 +1,13 @@
 <script lang="ts">
-	export let variant: 'ornamental' | 'simplified' = 'ornamental';
-	export let width: number = 280;
-	export let height: number = 392;
+	let {
+		variant = 'ornamental',
+		width = 280,
+		height = 392
+	}: {
+		variant?: 'ornamental' | 'simplified';
+		width?: number;
+		height?: number;
+	} = $props();
 </script>
 
 <svg

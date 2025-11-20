@@ -11,20 +11,25 @@
 	}>();
 
 	let cardFlipped = $state(false);
-	let readyToAcknowledge = $state(false);
+	let hasClickedReady = $state(false);
 
 	let info = $derived(getRoleInfo(role));
 
 	function handleShowRole() {
 		if (!cardFlipped) {
 			cardFlipped = true;
-			readyToAcknowledge = true;
 		}
 	}
 
 	function handleReady() {
-		if (readyToAcknowledge && !acknowledged) {
-			onAcknowledge();
+		if (!acknowledged) {
+			if (!hasClickedReady) {
+				// First click of Ready - just mark as ready, show Look Again button
+				hasClickedReady = true;
+			} else {
+				// Second click of Ready - confirm and acknowledge
+				onAcknowledge();
+			}
 		}
 	}
 
@@ -33,7 +38,9 @@
 			// Can't unready after acknowledging
 			return;
 		}
-		cardFlipped = !cardFlipped;
+		// Reset back to showing card back
+		cardFlipped = false;
+		hasClickedReady = false;
 	}
 </script>
 
@@ -82,7 +89,7 @@
 			<div class="space-y-3">
 				{#if !cardFlipped}
 					<Button
-						on:click={handleShowRole}
+						onclick={handleShowRole}
 						class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 					>
 						👁️ Show Role
@@ -90,24 +97,36 @@
 					<p class="text-sm text-white/75 text-center">
 						Tap to peek at your role card
 					</p>
+				{:else if !hasClickedReady}
+					<!-- First view - only show Ready button -->
+					<Button
+						onclick={handleReady}
+						class="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-bold text-lg"
+					>
+						✓ Ready
+					</Button>
+					<p class="text-sm text-white/75 text-center">
+						Ready when you've memorized your role
+					</p>
 				{:else}
+					<!-- After clicking Ready once - show both buttons -->
 					<div class="flex gap-3">
 						<Button
-							on:click={handleUnready}
+							onclick={handleUnready}
 							variant="outline"
 							class="flex-1 h-14 bg-card hover:bg-muted text-foreground font-bold text-lg border-2"
 						>
 							↺ Look Again
 						</Button>
 						<Button
-							on:click={handleReady}
+							onclick={handleReady}
 							class="flex-1 h-14 bg-green-600 hover:bg-green-700 text-white font-bold text-lg"
 						>
-							✓ Ready
+							✓ Confirm
 						</Button>
 					</div>
 					<p class="text-sm text-white/75 text-center">
-						Ready when you've memorized your role
+						Click Confirm to continue, or Look Again to review
 					</p>
 				{/if}
 			</div>

@@ -126,7 +126,7 @@
 	{#if isHost}
 		{#if !scriptExpanded}
 			<Button
-				on:click={() => scriptExpanded = true}
+				onclick={() => scriptExpanded = true}
 				class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 			>
 				📜 Show Host Script
@@ -153,7 +153,10 @@
 							<label class="flex items-start gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
 								<input
 									type="checkbox"
-									bind:checked={checkedSteps[step.order]}
+									checked={checkedSteps[step.order]}
+								onchange={(e) => {
+									checkedSteps[step.order] = (e.target as HTMLInputElement).checked;
+								}}
 									class="mt-1 w-5 h-5 rounded border-border text-primary focus:ring-primary"
 								/>
 								<div class="flex-1">
@@ -170,7 +173,7 @@
 
 					<div class="pt-4 border-t border-border">
 						<Button
-							on:click={handleAdvanceToDay}
+							onclick={handleAdvanceToDay}
 							class="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
 						>
 							Advance to Day Phase →
@@ -188,7 +191,7 @@
 	{#if !isHost || myRole}
 		{#if !actionVisible}
 			<Button
-				on:click={() => actionVisible = true}
+				onclick={() => actionVisible = true}
 				class="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg"
 			>
 				👁️ Show Night Action
@@ -240,7 +243,7 @@
 					</div>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -301,7 +304,7 @@
 						/>
 						{#if selectedCenterCards.length === 2}
 							<Button
-								on:click={() => handleSeerViewCenter(selectedCenterCards)}
+								onclick={() => handleSeerViewCenter(selectedCenterCards)}
 								class="w-full mt-4"
 							>
 								View Selected Cards
@@ -329,7 +332,7 @@
 					{/if}
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -363,7 +366,7 @@
 					</div>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-6"
 				>
@@ -415,7 +418,7 @@
 
 						{#if selectedPlayer1 && selectedPlayer2}
 							<Button
-								on:click={() => {
+								onclick={() => {
 									if (selectedPlayer1 && selectedPlayer2) {
 										handleTroublemakerSwap(selectedPlayer1, selectedPlayer2);
 									}
@@ -433,7 +436,7 @@
 					</div>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -470,7 +473,7 @@
 				</div>
 			{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -501,7 +504,7 @@
 					<p class="text-muted-foreground">You are the only mason in the game.</p>
 				{/if}
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-4"
 				>
@@ -529,7 +532,7 @@
 					</p>
 				</div>
 				<Button
-					on:click={() => actionVisible = false}
+					onclick={() => actionVisible = false}
 					variant="outline"
 					class="w-full mt-6"
 				>

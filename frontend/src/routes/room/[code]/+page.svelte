@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { session } from '$lib/stores/session.svelte';
@@ -33,7 +32,7 @@
 	);
 	let gameType = $derived(roomState?.gameType || 'werewolf');
 
-	onMount(() => {
+	$effect(() => {
 		const currentSession = session.value;
 
 		// Verify session exists for this room
@@ -47,11 +46,11 @@
 
 		// Set up reactive effect to handle WebSocket status and messages
 		let lastMessageCount = 0;
-		
+
 		$effect(() => {
 			if (wsStore) {
 				connectionStatus = wsStore.status;
-				
+
 				// Process new messages
 				if (wsStore.messages.length > lastMessageCount) {
 					const latestMessage = wsStore.messages[wsStore.messages.length - 1];

@@ -150,7 +150,7 @@
 				</p>
 				<Button
 					class="w-full h-14 text-lg bg-primary hover:bg-primary/90"
-					on:click={handlePlayAgain}
+					onclick={handlePlayAgain}
 					disabled={isResetting}
 				>
 					{isResetting ? 'Setting up...' : '🎮 Play Again'}

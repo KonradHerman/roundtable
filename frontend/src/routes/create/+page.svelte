@@ -54,7 +54,7 @@
 		<Button
 			variant="ghost"
 			class="mb-6"
-			on:click={() => goto('/')}
+			onclick={() => goto('/')}
 		>
 			<ArrowLeft class="w-4 h-4 mr-2" />
 			Back
@@ -66,7 +66,7 @@
 				<p class="text-muted-foreground">Create a room and choose your game in the lobby</p>
 			</div>
 
-			<form on:submit|preventDefault={handleCreate} class="space-y-5">
+			<form onsubmit={(e) => { e.preventDefault(); handleCreate(); }} class="space-y-5">
 				<!-- Your name -->
 				<div class="space-y-2">
 					<label for="name" class="block text-sm font-medium">
