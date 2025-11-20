@@ -6,15 +6,8 @@
 	import { ArrowLeft } from 'lucide-svelte';
 
 	let displayName = '';
-	let selectedGame = 'werewolf';
 	let loading = false;
 	let error = '';
-
-	const games = [
-		{ id: 'werewolf', name: 'One Night Werewolf', players: '3-10', emoji: '🐺' },
-		// Future: { id: 'avalon', name: 'Avalon', players: '5-10', emoji: '⚔️' },
-		// Future: { id: 'bohnanza', name: 'Bohnanza', players: '3-7', emoji: '🌱' }
-	];
 
 	async function handleCreate() {
 		if (!displayName.trim()) {
@@ -27,7 +20,7 @@
 
 		try {
 			const request: CreateRoomRequest = {
-				gameType: selectedGame,
+				gameType: 'werewolf', // Default - game will be selected in room lobby
 				displayName: displayName.trim(),
 				maxPlayers: 15
 			};
@@ -70,7 +63,7 @@
 		<Card class="p-6 space-y-6">
 			<div>
 				<h1 class="text-2xl font-bold mb-2">Host a Game</h1>
-				<p class="text-muted-foreground">Choose a game and enter your name</p>
+				<p class="text-muted-foreground">Create a room and choose your game in the lobby</p>
 			</div>
 
 			<form on:submit|preventDefault={handleCreate} class="space-y-5">
@@ -89,37 +82,23 @@
 						disabled={loading}
 						autocomplete="off"
 						style="min-height: 48px;"
+						autofocus
 					/>
 				</div>
 
-				<!-- Game selection -->
-				<div class="space-y-2">
-					<div class="block text-sm font-medium mb-2">
-						Choose Game
-					</div>
-					<div class="space-y-2">
-						{#each games as game}
-							<label class="flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary/50 {selectedGame === game.id ? 'border-primary bg-primary/5' : 'border-input'}">
-								<input
-									type="radio"
-									name="game"
-									value={game.id}
-									bind:group={selectedGame}
-									class="sr-only"
-									disabled={loading}
-								/>
-								<span class="text-3xl">{game.emoji}</span>
-								<div class="flex-1">
-									<div class="font-semibold">{game.name}</div>
-									<div class="text-sm text-muted-foreground">{game.players} players</div>
-								</div>
-								{#if selectedGame === game.id}
-									<div class="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-										<div class="w-2 h-2 rounded-full bg-white"></div>
-									</div>
-								{/if}
-							</label>
-						{/each}
+				<!-- Info about games -->
+				<div class="p-4 bg-muted/50 rounded-lg">
+					<p class="text-sm text-muted-foreground mb-2">Available games:</p>
+					<div class="flex flex-wrap gap-2">
+						<span class="inline-flex items-center gap-1 text-sm">
+							<span>🐺</span>
+							<span>One Night Werewolf</span>
+						</span>
+						<span class="text-muted-foreground">•</span>
+						<span class="inline-flex items-center gap-1 text-sm">
+							<span>🗡️</span>
+							<span>Avalon</span>
+						</span>
 					</div>
 				</div>
 
