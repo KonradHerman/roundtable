@@ -21,6 +21,7 @@
 	let copied = $state(false);
 	let selectedGame = $state<'werewolf' | 'avalon'>('werewolf');
 	let showQRCode = $state(false);
+	let isResetting = $state(false);
 
 	// Derived reactive values
 	let isHost = $derived(session.value?.playerId === roomState?.hostId);
@@ -264,6 +265,21 @@
 			}
 		}
 	}
+
+	async function handlePlayAgain() {
+		if (!roomCode) return;
+
+		isResetting = true;
+		try {
+			await api.resetGame(roomCode);
+			// Room will be reset and clients will receive updated state via WebSocket
+		} catch (error) {
+			console.error('Failed to reset game:', error);
+			alert('Failed to start a new game. Please try again.');
+		} finally {
+			isResetting = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -459,8 +475,12 @@
 				<h1 class="text-2xl font-bold mb-4">Game Finished</h1>
 				<p class="text-muted-foreground">Results will appear here...</p>
 				{#if isHost}
-					<Button class="w-full mt-6" onclick={() => window.location.reload()}>
-						Play Again
+					<Button
+						class="w-full mt-6"
+						onclick={handlePlayAgain}
+						disabled={isResetting}
+					>
+						{isResetting ? 'Setting up...' : '🎮 Play Again'}
 					</Button>
 				{/if}
 			</Card>
