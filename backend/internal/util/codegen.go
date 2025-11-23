@@ -7,9 +7,9 @@ import (
 
 // GenerateRoomCode creates a random 6-character room code.
 // Uses characters that are easy to read and type on mobile: uppercase letters and numbers,
-// excluding ambiguous characters (0/O, 1/I/L).
+// excluding ambiguous characters (0/O, 1/I).
 func GenerateRoomCode() string {
-	const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // No 0,O,1,I,L
+	const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // No 0,O,1,I
 	const codeLength = 6
 
 	code := make([]byte, codeLength)
