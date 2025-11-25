@@ -2,9 +2,11 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"nhooyr.io/websocket"
@@ -14,6 +16,30 @@ import (
 	"github.com/KonradHerman/roundtable/internal/store"
 	"github.com/KonradHerman/roundtable/internal/util"
 )
+
+// validDisplayNameRegex is compiled once at package init for performance.
+// Allows alphanumeric, spaces, and common punctuation.
+var validDisplayNameRegex = regexp.MustCompile(`^[a-zA-Z0-9 _\-'\.]+$`)
+
+// validateDisplayName ensures display names meet requirements.
+// Returns the cleaned name and an error if validation fails.
+// Rules: 1-20 characters, alphanumeric with spaces and common punctuation.
+func validateDisplayName(name string) (string, error) {
+	cleaned := strings.TrimSpace(name)
+
+	if len(cleaned) < 1 {
+		return "", errors.New("display name required")
+	}
+	if len(cleaned) > 20 {
+		return "", errors.New("display name must be 20 characters or less")
+	}
+
+	if !validDisplayNameRegex.MatchString(cleaned) {
+		return "", errors.New("display name contains invalid characters")
+	}
+
+	return cleaned, nil
+}
 
 // Server holds the HTTP server and its dependencies.
 type Server struct {
@@ -77,8 +103,15 @@ func (s *Server) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 		req.MaxPlayers = 10
 	}
 
+	// Validate display name
+	displayName, err := validateDisplayName(req.DisplayName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// Create host player
-	hostPlayer := core.NewPlayer(req.DisplayName)
+	hostPlayer := core.NewPlayer(displayName)
 
 	// Generate room code
 	roomCode := util.GenerateRoomCode()
@@ -154,8 +187,10 @@ func (s *Server) HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.DisplayName == "" {
-		http.Error(w, "Display name required", http.StatusBadRequest)
+	// Validate display name
+	displayName, err := validateDisplayName(req.DisplayName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -167,7 +202,7 @@ func (s *Server) HandleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create player
-	player := core.NewPlayer(req.DisplayName)
+	player := core.NewPlayer(displayName)
 
 	// Add player to room
 	if err := room.AddPlayer(player); err != nil {
@@ -374,7 +409,7 @@ func getWebSocketOrigins() []string {
 	if originsEnv == "" {
 		originsEnv = os.Getenv("ALLOWED_ORIGIN")
 	}
-	
+
 	if originsEnv == "" {
 		// Dev default - allow localhost on any port
 		return []string{"localhost:*", "127.0.0.1:*"}

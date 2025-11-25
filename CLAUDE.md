@@ -430,7 +430,7 @@ npm run dev
 - Context-aware: respect `context.Context` for cancellation
 
 **Frontend (TypeScript/Svelte):**
-- **In transition**: Svelte 4 → Svelte 5 (dual implementation exists)
+- **Using Svelte 5** with runes (`$state`, `$derived`, `$effect`)
 - Use TypeScript strictly (no `any` types)
 - Path aliases: `$components`, `$stores`, `$games`, `$api`
 - Component naming: PascalCase (e.g., `RoleCard.svelte`)
@@ -789,17 +789,15 @@ npm run build
 
 ---
 
-### Migration Notes: Svelte 4 → Svelte 5
+### Svelte 5 Stores
 
 **Current state:**
-- Dual implementation exists for stores (`.ts` and `.svelte.ts`)
-- New code should use Svelte 5 runes (`$state`, `$derived`, `$effect`)
-- Migration planned for Phase 3
+- Stores use Svelte 5 runes (`$state`, `$derived`, `$effect`)
+- All store files use `.svelte.ts` extension
 
 **When working with state:**
-- Prefer `.svelte.ts` files (Svelte 5)
-- Use runes for reactivity
-- Avoid `.ts` versions (legacy Svelte 4)
+- Use `.svelte.ts` files with runes for reactivity
+- See `session.svelte.ts`, `game.svelte.ts`, `websocket.svelte.ts`
 
 ---
 

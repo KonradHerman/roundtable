@@ -1,9 +1,10 @@
 package avalon
 
 import (
+	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"sync"
 
 	"github.com/KonradHerman/roundtable/internal/core"
@@ -89,8 +90,13 @@ func (g *Game) Initialize(config core.GameConfig, players []*core.Player) ([]cor
 		return nil, fmt.Errorf("failed to assign roles: %w", err)
 	}
 
-	// Select first leader randomly
-	g.leaderIndex = rand.Intn(len(g.players))
+	// Select first leader randomly using cryptographically secure randomness
+	// This ensures the first leader is unpredictable across server restarts
+	leaderBig, err := crand.Int(crand.Reader, big.NewInt(int64(len(g.players))))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate random leader: %w", err)
+	}
+	g.leaderIndex = int(leaderBig.Int64())
 	g.currentLeader = g.players[g.leaderIndex].ID
 	g.questNumber = 1
 	g.rejectionCount = 0
@@ -676,9 +682,17 @@ func (g *Game) isOnProposedTeam(playerID string) bool {
 }
 
 func (g *Game) shuffleQuestCards(cards []QuestCard) {
-	rand.Shuffle(len(cards), func(i, j int) {
+	// Use crypto/rand for secure shuffling (prevents order-based tells)
+	n := len(cards)
+	for i := n - 1; i > 0; i-- {
+		jBig, err := crand.Int(crand.Reader, big.NewInt(int64(i+1)))
+		if err != nil {
+			// Should never happen with crypto/rand
+			continue
+		}
+		j := int(jBig.Int64())
 		cards[i], cards[j] = cards[j], cards[i]
-	})
+	}
 }
 
 func (g *Game) createGameFinishedEvents() []core.GameEvent {

@@ -20,8 +20,9 @@
 	$effect(() => {
 		if (!browser) return;
 
-		// Create QR code with soft aesthetic styling
+		// Create QR code with soft aesthetic styling (SVG for crisp rendering)
 		qrCode = new QRCodeStyling({
+			type: 'svg',
 			width: size,
 			height: size,
 			data: inviteUrl,
@@ -49,7 +50,7 @@
 				}
 			},
 			backgroundOptions: {
-				color: '#3c3836' // card background
+				color: 'transparent'
 			},
 			cornersSquareOptions: {
 				type: 'extra-rounded',
@@ -115,8 +116,8 @@
 </div>
 
 <style>
-	/* Ensure QR code canvas inherits border radius and fits properly */
-	:global(.qr-code-styling canvas) {
+	/* Ensure QR code SVG inherits border radius and fits properly */
+	:global(.qr-code-styling svg) {
 		border-radius: 0.75rem;
 		max-width: 100%;
 		height: auto;
