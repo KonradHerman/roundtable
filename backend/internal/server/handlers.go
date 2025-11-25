@@ -369,10 +369,20 @@ func (s *Server) HandleGetRoom(w http.ResponseWriter, r *http.Request) {
 
 // getWebSocketOrigins returns allowed WebSocket origin patterns from environment.
 func getWebSocketOrigins() []string {
+	// Try ALLOWED_ORIGINS first (comma-separated list), then fall back to ALLOWED_ORIGIN
 	originsEnv := os.Getenv("ALLOWED_ORIGINS")
+	if originsEnv == "" {
+		originsEnv = os.Getenv("ALLOWED_ORIGIN")
+	}
+	
 	if originsEnv == "" {
 		// Dev default - allow localhost on any port
 		return []string{"localhost:*", "127.0.0.1:*"}
+	}
+
+	// Special case: "*" means allow all origins
+	if originsEnv == "*" {
+		return []string{"*"}
 	}
 
 	// Split comma-separated origins

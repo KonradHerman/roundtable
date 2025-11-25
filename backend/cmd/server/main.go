@@ -48,6 +48,17 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
+	// Debug endpoint to check env vars
+	mux.HandleFunc("GET /debug/env", func(w http.ResponseWriter, r *http.Request) {
+		allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+		if allowedOrigin == "" {
+			allowedOrigin = "(not set - using default)"
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ALLOWED_ORIGIN=" + allowedOrigin))
+	})
+
 	// CORS middleware (for development)
 	handler := corsMiddleware(mux)
 
