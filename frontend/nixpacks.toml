@@ -1,6 +1,6 @@
 # Nixpacks configuration for frontend (Node.js/SvelteKit)
 [phases.setup]
-nixPkgs = ["nodejs-20_x"]
+nixPkgs = ["nodejs_22"]
 
 [phases.install]
 cmds = ["npm install"]
