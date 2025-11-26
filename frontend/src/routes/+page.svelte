@@ -67,7 +67,7 @@
 		<div class="text-center">
 			<h1 class="text-6xl font-bold mb-2">🎲</h1>
 			<h1 class="text-5xl font-bold text-primary mb-2">Cardless</h1>
-			<p class="text-foreground/80 text-lg">Party games for friends</p>
+			<p class="text-foreground/80 text-lg">Party games without the cards</p>
 		</div>
 
 		<!-- Main actions -->
